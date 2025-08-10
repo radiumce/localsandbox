@@ -87,8 +87,11 @@ class WrapperConfig:
             # Parse and validate flavor
             default_flavor = cls._parse_default_flavor()
             
+            # Load custom flavor configurations if provided
+            cls._load_custom_flavors()
+            
             # Parse numeric values with validation
-            session_timeout = cls._parse_positive_int('MSB_SESSION_TIMEOUT', 1800)
+            session_timeout = cls._parse_positive_int('MSB_SESSION_TIMEOUT', 3600)
             max_concurrent_sessions = cls._parse_positive_int('MSB_MAX_SESSIONS', 10)
             cleanup_interval = cls._parse_positive_int('MSB_CLEANUP_INTERVAL', 60)
             sandbox_start_timeout = cls._parse_positive_float('MSB_SANDBOX_START_TIMEOUT', 180.0)
@@ -462,6 +465,120 @@ class WrapperConfig:
             List[VolumeMapping]: List of parsed volume mappings
         """
         return [VolumeMapping.from_string(mapping) for mapping in self.shared_volume_mappings]
+    
+    @classmethod
+    def _load_custom_flavors(cls) -> None:
+        """
+        Load custom flavor configurations from environment variable.
+        
+        Environment variable:
+            MSB_FLAVOR_CONFIGS: JSON object defining custom flavor configurations
+            Format: {"small": {"memory_mb": 1024, "cpu_limit": 1.0}, ...}
+            
+        This allows overriding the default flavor configurations defined in SandboxFlavor.
+        """
+        flavor_config_env = os.getenv('MSB_FLAVOR_CONFIGS')
+        if not flavor_config_env:
+            return
+        
+        try:
+            import json
+            custom_flavors = json.loads(flavor_config_env)
+            
+            if not isinstance(custom_flavors, dict):
+                raise ConfigurationError(
+                    f"MSB_FLAVOR_CONFIGS must be a JSON object, got {type(custom_flavors).__name__}"
+                )
+            
+            # Validate and update SandboxFlavor methods
+            for flavor_name, config in custom_flavors.items():
+                if not isinstance(config, dict):
+                    raise ConfigurationError(
+                        f"Flavor config for '{flavor_name}' must be an object, got {type(config).__name__}"
+                    )
+                
+                required_keys = ["memory_mb", "cpu_limit"]
+                for key in required_keys:
+                    if key not in config:
+                        raise ConfigurationError(
+                            f"Flavor config for '{flavor_name}' missing required key: {key}"
+                        )
+                
+                memory_mb = config["memory_mb"]
+                cpu_limit = config["cpu_limit"]
+                
+                if not isinstance(memory_mb, int) or memory_mb <= 0:
+                    raise ConfigurationError(
+                        f"memory_mb for flavor '{flavor_name}' must be a positive integer, got: {memory_mb}"
+                    )
+                
+                if not isinstance(cpu_limit, (int, float)) or cpu_limit <= 0:
+                    raise ConfigurationError(
+                        f"cpu_limit for flavor '{flavor_name}' must be a positive number, got: {cpu_limit}"
+                    )
+                
+                # Update the flavor enum's methods dynamically
+                cls._update_flavor_config(flavor_name, memory_mb, float(cpu_limit))
+            
+            logger.info(f"Loaded custom flavor configurations: {list(custom_flavors.keys())}")
+            
+        except json.JSONDecodeError as e:
+            raise ConfigurationError(
+                f"Invalid JSON format in MSB_FLAVOR_CONFIGS: {e}"
+            )
+        except Exception as e:
+            if isinstance(e, ConfigurationError):
+                raise
+            raise ConfigurationError(
+                f"Failed to load custom flavor configurations: {e}"
+            )
+    
+    @classmethod
+    def _update_flavor_config(cls, flavor_name: str, memory_mb: int, cpu_limit: float) -> None:
+        """
+        Update a flavor's configuration dynamically.
+        
+        Args:
+            flavor_name: Name of the flavor to update
+            memory_mb: Memory limit in MB
+            cpu_limit: CPU limit
+        """
+        # Store custom configurations in a class variable
+        if not hasattr(cls, '_custom_flavor_configs'):
+            cls._custom_flavor_configs = {}
+        
+        cls._custom_flavor_configs[flavor_name] = {
+            'memory_mb': memory_mb,
+            'cpu_limit': cpu_limit
+        }
+        
+        # Monkey patch the SandboxFlavor methods if the flavor exists
+        try:
+            flavor_enum = SandboxFlavor(flavor_name)
+            
+            # Store original methods if not already stored
+            if not hasattr(SandboxFlavor, '_original_get_memory_mb'):
+                SandboxFlavor._original_get_memory_mb = SandboxFlavor.get_memory_mb
+                SandboxFlavor._original_get_cpus = SandboxFlavor.get_cpus
+            
+            # Override the methods
+            def get_memory_mb_override(self):
+                if hasattr(WrapperConfig, '_custom_flavor_configs') and self.value in WrapperConfig._custom_flavor_configs:
+                    return WrapperConfig._custom_flavor_configs[self.value]['memory_mb']
+                return SandboxFlavor._original_get_memory_mb(self)
+            
+            def get_cpus_override(self):
+                if hasattr(WrapperConfig, '_custom_flavor_configs') and self.value in WrapperConfig._custom_flavor_configs:
+                    return WrapperConfig._custom_flavor_configs[self.value]['cpu_limit']
+                return SandboxFlavor._original_get_cpus(self)
+            
+            SandboxFlavor.get_memory_mb = get_memory_mb_override
+            SandboxFlavor.get_cpus = get_cpus_override
+            
+        except ValueError:
+            # Flavor doesn't exist in enum, that's okay
+            logger.warning(f"Custom flavor '{flavor_name}' is not a standard flavor")
+            pass
     
     def __str__(self) -> str:
         """

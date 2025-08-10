@@ -28,7 +28,7 @@ class ContainerRuntimeConfig:
     # Default resource limits
     default_memory_mb: int = 512
     default_cpu_limit: float = 1.0
-    default_timeout: int = 30
+    default_timeout: int = 1800  # 30 minutes
     
     # Container configuration
     default_working_dir: str = "/workspace"
@@ -106,7 +106,7 @@ class ConfigManager:
             # Resource limits with validation
             memory_mb = self._parse_int_env("LOCALSANDBOX_DEFAULT_MEMORY", 512)
             cpu_limit = self._parse_float_env("LOCALSANDBOX_DEFAULT_CPU", 1.0)
-            timeout = self._parse_int_env("LOCALSANDBOX_DEFAULT_TIMEOUT", 30)
+            timeout = self._parse_int_env("LOCALSANDBOX_DEFAULT_TIMEOUT", 1800)
             
             # Working directory
             working_dir = os.environ.get("LOCALSANDBOX_WORKING_DIR", "/workspace")
