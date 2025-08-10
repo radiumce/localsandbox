@@ -10,10 +10,10 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from mcp.server.fastmcp import FastMCP, Context
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from microsandbox_wrapper.wrapper import MicrosandboxWrapper
 from microsandbox_wrapper.models import SandboxFlavor
@@ -89,40 +89,18 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 mcp = FastMCP("Microsandbox Server", lifespan=app_lifespan)
 
 
-# Pydantic models for tool parameters
-class ExecuteCodeParams(BaseModel):
-    """Parameters for code execution tool."""
-    code: str = Field(description="Code to execute")
-    template: str = Field(default="python", description="Sandbox template", pattern="^(python|node)$")
-    session_id: Optional[str] = Field(None, description="Optional session ID for session reuse")
-    flavor: str = Field(default="small", description="Resource configuration", pattern="^(small|medium|large)$")
-    timeout: Optional[int] = Field(None, description="Execution timeout in seconds", ge=1, le=300)
-
-
-class ExecuteCommandParams(BaseModel):
-    """Parameters for command execution tool."""
-    command: str = Field(description="Complete command line to execute (including arguments, pipes, redirections, etc.)")
-    template: str = Field(default="python", description="Sandbox template", pattern="^(python|node)$")
-    session_id: Optional[str] = Field(None, description="Optional session ID for session reuse")
-    flavor: str = Field(default="small", description="Resource configuration", pattern="^(small|medium|large)$")
-    timeout: Optional[int] = Field(None, description="Execution timeout in seconds", ge=1, le=1800)
-
-
-class GetSessionsParams(BaseModel):
-    """Parameters for get sessions tool."""
-    session_id: Optional[str] = Field(None, description="Optional specific session ID to query")
-
-
-class StopSessionParams(BaseModel):
-    """Parameters for stop session tool."""
-    session_id: str = Field(description="ID of the session to stop")
+# Direct parameter definitions - no wrapper models needed
 
 
 # Tool implementations using the official SDK
 @mcp.tool()
 async def execute_code(
-    params: ExecuteCodeParams,
-    ctx: Context,
+    code: str = Field(description="Code to execute"),
+    template: str = Field(default="python", description="Sandbox template"),
+    session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
+    flavor: str = Field(default="small", description="Resource configuration"),
+    timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
+    ctx: Context = None,
 ) -> str:
     """Execute code in a sandbox with automatic session management."""
     try:
@@ -130,15 +108,15 @@ async def execute_code(
         wrapper = ctx.request_context.lifespan_context.wrapper
         
         # Convert flavor string to enum
-        flavor = SandboxFlavor(params.flavor)
+        flavor_enum = SandboxFlavor(flavor)
         
         # Execute code through wrapper
         result = await wrapper.execute_code(
-            code=params.code,
-            template=params.template,
-            session_id=params.session_id,
-            flavor=flavor,
-            timeout=params.timeout
+            code=code,
+            template=template,
+            session_id=session_id,
+            flavor=flavor_enum,
+            timeout=timeout
         )
         
         # Format result for MCP protocol
@@ -166,8 +144,12 @@ async def execute_code(
 
 @mcp.tool()
 async def execute_command(
-    params: ExecuteCommandParams,
-    ctx: Context,
+    command: str = Field(description="Complete command line to execute (including arguments, pipes, redirections, etc.)"),
+    template: str = Field(default="python", description="Sandbox template"),
+    session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
+    flavor: str = Field(default="small", description="Resource configuration"),
+    timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
+    ctx: Context = None,
 ) -> str:
     """Execute a command line in a sandbox with automatic session management."""
     try:
@@ -175,16 +157,16 @@ async def execute_command(
         wrapper = ctx.request_context.lifespan_context.wrapper
         
         # Convert flavor string to enum
-        flavor = SandboxFlavor(params.flavor)
+        flavor_enum = SandboxFlavor(flavor)
         
         # Execute command line through shell using wrapper
         result = await wrapper.execute_command(
             command="sh",
-            args=["-c", params.command],
-            template=params.template,
-            session_id=params.session_id,
-            flavor=flavor,
-            timeout=params.timeout
+            args=["-c", command],
+            template=template,
+            session_id=session_id,
+            flavor=flavor_enum,
+            timeout=timeout
         )
         
         # Format result for MCP protocol
@@ -198,7 +180,7 @@ async def execute_command(
         # Add metadata information
         metadata = (
             f"\n[Session: {result.session_id}] "
-            f"[Command: {params.command}] "
+            f"[Command: {command}] "
             f"[Exit Code: {result.exit_code}] "
             f"[Time: {result.execution_time_ms}ms] "
             f"[Success: {result.success}]"
@@ -213,8 +195,8 @@ async def execute_command(
 
 @mcp.tool()
 async def get_sessions(
-    params: GetSessionsParams,
-    ctx: Context,
+    session_id: Optional[str] = Field(None, description="Optional specific session ID to query"),
+    ctx: Context = None,
 ) -> str:
     """Get information about active sandbox sessions."""
     try:
@@ -222,7 +204,7 @@ async def get_sessions(
         wrapper = ctx.request_context.lifespan_context.wrapper
         
         # Get sessions through wrapper
-        sessions = await wrapper.get_sessions(params.session_id)
+        sessions = await wrapper.get_sessions(session_id)
         
         # Format sessions information
         if not sessions:
@@ -251,8 +233,8 @@ async def get_sessions(
 
 @mcp.tool()
 async def stop_session(
-    params: StopSessionParams,
-    ctx: Context,
+    session_id: str = Field(description="ID of the session to stop"),
+    ctx: Context = None,
 ) -> str:
     """Stop a specific sandbox session and clean up its resources."""
     try:
@@ -260,12 +242,12 @@ async def stop_session(
         wrapper = ctx.request_context.lifespan_context.wrapper
         
         # Stop session through wrapper
-        success = await wrapper.stop_session(params.session_id)
+        success = await wrapper.stop_session(session_id)
         
         if success:
-            return f"Session {params.session_id} stopped successfully"
+            return f"Session {session_id} stopped successfully"
         else:
-            return f"Session {params.session_id} not found or already stopped"
+            return f"Session {session_id} not found or already stopped"
         
     except Exception as e:
         logger.error(f"Stop session failed: {e}", exc_info=True)
@@ -273,7 +255,7 @@ async def stop_session(
 
 
 @mcp.tool()
-async def get_volume_mappings(ctx: Context) -> str:
+async def get_volume_mappings(ctx: Context = None) -> str:
     """Get configured volume mappings between host and container paths."""
     try:
         # Get wrapper from context

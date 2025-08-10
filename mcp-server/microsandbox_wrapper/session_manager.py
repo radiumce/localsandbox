@@ -68,7 +68,10 @@ class ManagedSession:
         self.last_accessed = datetime.now()
         self.status = SessionStatus.CREATING
         self.namespace = "default"
-        self.sandbox_name = f"session-{session_id[:8]}"
+        # Generate unique sandbox name with timestamp for better debugging and uniqueness
+        # Include microseconds to avoid collisions when creating multiple sandboxes in the same second
+        timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        self.sandbox_name = f"sandbox-{timestamp_str}"
         
         # Configuration
         self._config = config
