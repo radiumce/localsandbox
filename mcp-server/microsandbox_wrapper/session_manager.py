@@ -6,6 +6,7 @@ session creation, lifecycle management, timeout handling, and resource cleanup.
 """
 
 import asyncio
+import os
 import time
 import uuid
 from datetime import datetime
@@ -429,27 +430,25 @@ class ManagedSession:
             
             # Import the appropriate sandbox class based on template
             if self.template in ["python"]:
-                from microsandbox import PythonSandbox
+                from sandbox import PythonSandbox
                 self._sandbox = PythonSandbox(
-                    server_url=self._config.server_url,
+                    container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
                     namespace=self.namespace,
-                    name=self.sandbox_name,
-                    api_key=self._config.api_key
+                    name=self.sandbox_name
+                    # Note: server_url and api_key are no longer needed for Docker-based implementation
                 )
             elif self.template in ["node", "nodejs", "javascript"]:
-                from microsandbox import NodeSandbox
+                from sandbox import NodeSandbox
                 self._sandbox = NodeSandbox(
-                    server_url=self._config.server_url,
+                    container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
                     namespace=self.namespace,
-                    name=self.sandbox_name,
-                    api_key=self._config.api_key
+                    name=self.sandbox_name
+                    # Note: server_url and api_key are no longer needed for Docker-based implementation
                 )
             else:
                 raise SandboxCreationError(f"Unsupported template: {self.template}")
             
-            # Create HTTP session for the sandbox
-            self._session = aiohttp.ClientSession()
-            self._sandbox._session = self._session
+            # Note: HTTP session is no longer needed for Docker-based implementation
             
             # Prepare volume mappings
             volumes = []

@@ -3,13 +3,13 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "microsandbox"
-version = "0.1.8"
-description = "Microsandbox Python SDK"
+name = "localsandbox"
+version = "0.2.0"
+description = "Local Docker-based Sandbox Python SDK"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "Apache-2.0"
-authors = [{ name = "Microsandbox Team", email = "team@microsandbox.dev" }]
+authors = [{ name = "LocalSandbox Team", email = "team@localsandbox.dev" }]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -21,11 +21,11 @@ classifiers = [
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = ["aiohttp>=3.10.0,<3.11.0", "frozenlist>=1.4.0", "python-dotenv"]
+dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/microsandbox/microsandbox/"
-Repository = "https://github.com/microsandbox/microsandbox/"
+Homepage = "https://github.com/localsandbox/localsandbox/"
+Repository = "https://github.com/localsandbox/localsandbox/"
 
 [project.optional-dependencies]
 dev = [

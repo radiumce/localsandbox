@@ -28,6 +28,9 @@ class CommandExecution:
         self._args: List[str] = []
         self._exit_code = -1
         self._success = False
+        
+        # Store the original output data for compatibility
+        self.output_data = output_data or {}
 
         # Process output data if provided
         if output_data and isinstance(output_data, dict):

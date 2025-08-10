@@ -1,12 +1,9 @@
 """
-Python-specific sandbox implementation for the Microsandbox Python SDK.
+Python-specific sandbox implementation for the LocalSandbox Python SDK.
 """
 
-import uuid
-
-import aiohttp
-
 from .base_sandbox import BaseSandbox
+from .config import get_config
 from .execution import Execution
 
 
@@ -22,9 +19,8 @@ class PythonSandbox(BaseSandbox):
         Returns:
             A string containing the Docker image name and tag
         """
-        import os
-        # Allow override via environment variable
-        return os.environ.get("MICROSANDBOX_PYTHON_IMAGE", "microsandbox/python")
+        config = get_config()
+        return config.default_python_image
 
     async def run(self, code: str) -> Execution:
         """
@@ -42,44 +38,58 @@ class PythonSandbox(BaseSandbox):
         if not self._is_started:
             raise RuntimeError("Sandbox is not started. Call start() first.")
 
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
+        # Create Python script with error handling and output capture
+        # Escape single quotes in the code to prevent syntax errors
+        escaped_code = code.replace("'", "\\'")
+        script_content = f"""
+import sys
+import traceback
 
-        request_data = {
-            "jsonrpc": "2.0",
-            "method": "sandbox.repl.run",
-            "params": {
-                "sandbox": self._name,
-                "namespace": self._namespace,
-                "language": "python",
-                "code": code,
-            },
-            "id": str(uuid.uuid4()),
-        }
+try:
+    # Execute user code
+    exec('''{escaped_code}''')
+except Exception as e:
+    # Print exception to stderr and exit with error code
+    traceback.print_exc()
+    sys.exit(1)
+"""
 
-        print("RPC Request URL:", f"{self._server_url}/api/v1/rpc")
-        print("RPC Request Payload:", request_data)
-
+        # Execute Python code in the container
+        command = ["python", "-c", script_content]
+        
         try:
-            async with self._session.post(
-                f"{self._server_url}/api/v1/rpc",
-                json=request_data,
-                headers=headers,
-            ) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise RuntimeError(f"Failed to execute code: {error_text}")
-
-                response_data = await response.json()
-                if "error" in response_data:
-                    raise RuntimeError(
-                        f"Failed to execute code: {response_data['error']['message']}"
-                    )
-
-                result = response_data.get("result", {})
-
-                # Create and return an Execution object with the output data
-                return Execution(output_data=result)
-        except aiohttp.ClientError as e:
+            # Use configured timeout
+            config = get_config()
+            result = await self._runtime.execute_command(
+                self._container_id,
+                command,
+                timeout=config.default_timeout
+            )
+            
+            # Build output data compatible with original Execution format
+            output_data = {
+                "output": [],
+                "status": "success" if result["returncode"] == 0 else "error",
+                "language": "python"
+            }
+            
+            # Add stdout output lines
+            if result["stdout"]:
+                for line in result["stdout"].splitlines():
+                    output_data["output"].append({
+                        "stream": "stdout",
+                        "text": line
+                    })
+            
+            # Add stderr output lines
+            if result["stderr"]:
+                for line in result["stderr"].splitlines():
+                    output_data["output"].append({
+                        "stream": "stderr",
+                        "text": line
+                    })
+            
+            return Execution(output_data=output_data)
+            
+        except Exception as e:
             raise RuntimeError(f"Failed to execute code: {e}")

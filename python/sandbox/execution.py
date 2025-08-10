@@ -27,6 +27,9 @@ class Execution:
         self._status = "unknown"
         self._language = "unknown"
         self._has_error = False
+        
+        # Store the original output data for compatibility
+        self.output_data = output_data or {}
 
         # Process output data if provided
         if output_data and isinstance(output_data, dict):

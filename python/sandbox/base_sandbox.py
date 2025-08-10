@@ -9,11 +9,11 @@ from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from typing import Optional
 
-import aiohttp
-from dotenv import load_dotenv
-
 from .command import Command
-from .metrics import Metrics
+from .config import get_config, get_runtime_command
+# TODO: Metrics implementation removed - will be implemented later
+# from .metrics import Metrics
+from .container_runtime import ContainerRuntime, DockerRuntime
 
 
 class BaseSandbox(ABC):
@@ -26,36 +26,41 @@ class BaseSandbox(ABC):
 
     def __init__(
         self,
-        server_url: str = None,
+        container_runtime: Optional[str] = None,
         namespace: str = "default",
         name: Optional[str] = None,
-        api_key: Optional[str] = None,
+        **kwargs
     ):
         """
         Initialize a base sandbox instance.
 
         Args:
-            server_url: URL of the Microsandbox server. If not provided, will check MSB_SERVER_URL environment variable, then fall back to default.
+            container_runtime: Container runtime to use ('docker' or 'podman'). If not provided, will use configuration from environment variables.
             namespace: Namespace for the sandbox
             name: Optional name for the sandbox. If not provided, a random name will be generated.
-            api_key: API key for Microsandbox server authentication. If not provided, it will be read from MSB_API_KEY environment variable.
+            **kwargs: Additional arguments for backward compatibility (ignored)
         """
-        # Only try to load .env if MSB_API_KEY is not already set
-        if "MSB_API_KEY" not in os.environ:
-            # Ignore errors if .env file doesn't exist
-            try:
-                load_dotenv()
-            except Exception:
-                pass
-
-        self._server_url = server_url or os.environ.get(
-            "MSB_SERVER_URL", "http://127.0.0.1:5555"
-        )
+        # Load configuration
+        self._config = get_config()
+        
+        # Set container runtime, using config default if not specified
+        self._container_runtime_name = container_runtime or self._config.runtime_type
         self._namespace = namespace
         self._name = name or f"sandbox-{uuid.uuid4().hex[:8]}"
-        self._api_key = api_key or os.environ.get("MSB_API_KEY")
-        self._session = None
+        self._container_id: Optional[str] = None
         self._is_started = False
+        
+        # Initialize container runtime
+        self._runtime = self._create_runtime()
+
+    def _create_runtime(self) -> ContainerRuntime:
+        """Create container runtime instance with validation"""
+        try:
+            # Get the validated runtime command
+            runtime_cmd = get_runtime_command(self._container_runtime_name)
+            return DockerRuntime(runtime_cmd)
+        except RuntimeError as e:
+            raise RuntimeError(f"Failed to initialize container runtime: {e}")
 
     @abstractmethod
     async def get_default_image(self) -> str:
@@ -71,51 +76,41 @@ class BaseSandbox(ABC):
     @asynccontextmanager
     async def create(
         cls,
-        server_url: str = None,
+        container_runtime: Optional[str] = None,
         namespace: str = "default",
         name: Optional[str] = None,
-        api_key: Optional[str] = None,
         image: Optional[str] = None,
-        memory: int = 512,
-        cpus: float = 1.0,
+        memory: Optional[int] = None,
+        cpus: Optional[float] = None,
         timeout: float = 180.0,
         volumes: Optional[list] = None,
+        **kwargs
     ):
         """
         Create and initialize a new sandbox as an async context manager.
 
         Args:
-            server_url: URL of the Microsandbox server. If not provided, will check MSB_SERVER_URL environment variable, then fall back to default.
+            container_runtime: Container runtime to use ('docker' or 'podman'). If not provided, will use configuration from environment variables.
             namespace: Namespace for the sandbox
             name: Optional name for the sandbox. If not provided, a random name will be generated.
-            api_key: API key for Microsandbox server authentication. If not provided, it will be read from MSB_API_KEY environment variable.
             image: Docker image to use for the sandbox (defaults to language-specific image)
-            memory: Memory limit in MB
-            cpus: CPU limit (will be rounded to nearest integer)
+            memory: Memory limit in MB (defaults to configuration value)
+            cpus: CPU limit (defaults to configuration value)
             timeout: Maximum time in seconds to wait for the sandbox to start (default: 180 seconds)
             volumes: List of volume mappings in format ["host_path:container_path", ...]. 
                     Supports both relative paths (relative to project directory) and absolute paths.
+            **kwargs: Additional arguments for backward compatibility (ignored)
 
         Returns:
             An instance of the sandbox ready for use
         """
-        # Only try to load .env if MSB_API_KEY is not already set
-        if "MSB_API_KEY" not in os.environ:
-            # Ignore errors if .env file doesn't exist
-            try:
-                load_dotenv()
-            except Exception:
-                pass
-
         sandbox = cls(
-            server_url=server_url,
+            container_runtime=container_runtime,
             namespace=namespace,
             name=name,
-            api_key=api_key,
+            **kwargs
         )
         try:
-            # Create HTTP session
-            sandbox._session = aiohttp.ClientSession()
             # Start the sandbox
             await sandbox.start(
                 image=image,
@@ -128,16 +123,12 @@ class BaseSandbox(ABC):
         finally:
             # Stop the sandbox
             await sandbox.stop()
-            # Close the HTTP session
-            if sandbox._session:
-                await sandbox._session.close()
-                sandbox._session = None
 
     async def start(
         self,
         image: Optional[str] = None,
-        memory: int = 512,
-        cpus: float = 1.0,
+        memory: Optional[int] = None,
+        cpus: Optional[float] = None,
         timeout: float = 180.0,
         volumes: Optional[list] = None,
     ) -> None:
@@ -146,8 +137,8 @@ class BaseSandbox(ABC):
 
         Args:
             image: Docker image to use for the sandbox (defaults to language-specific image)
-            memory: Memory limit in MB
-            cpus: CPU limit (will be rounded to nearest integer)
+            memory: Memory limit in MB (defaults to configuration value)
+            cpus: CPU limit (defaults to configuration value)
             timeout: Maximum time in seconds to wait for the sandbox to start (default: 180 seconds)
             volumes: List of volume mappings in format ["host_path:container_path", ...]. 
                     Supports both relative paths (relative to project directory) and absolute paths.
@@ -161,69 +152,31 @@ class BaseSandbox(ABC):
 
         sandbox_image = image or await self.get_default_image()
         
-        # Build the config object
-        config = {
-            "image": sandbox_image,
-            "memory": memory,
-            "cpus": int(round(cpus)),
-        }
+        # Use configuration defaults if not specified
+        memory_limit = memory or self._config.default_memory_mb
+        cpu_limit = cpus or self._config.default_cpu_limit
         
-        # Add volumes if provided
-        if volumes:
-            config["volumes"] = volumes
+        # Import ContainerConfig here to avoid circular imports
+        from .container_runtime import ContainerConfig
         
-        request_data = {
-            "jsonrpc": "2.0",
-            "method": "sandbox.start",
-            "params": {
-                "namespace": self._namespace,
-                "sandbox": self._name,
-                "config": config,
-            },
-            "id": str(uuid.uuid4()),
-        }
-
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
+        # Build the container configuration
+        config = ContainerConfig(
+            image=sandbox_image,
+            name=self._name,
+            memory=memory_limit,
+            cpus=cpu_limit,
+            volumes=volumes or [],
+            working_dir=self._config.default_working_dir,
+            command=["sleep", "infinity"]  # Keep container running
+        )
+        
         try:
-            # Set a client-side timeout that's a bit longer than the server-side timeout
-            # to account for network latency and processing time
-            client_timeout = aiohttp.ClientTimeout(total=timeout + 30)
-
-            async with self._session.post(
-                f"{self._server_url}/api/v1/rpc",
-                json=request_data,
-                headers=headers,
-                timeout=client_timeout,
-            ) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise RuntimeError(f"Failed to start sandbox: {error_text}")
-
-                response_data = await response.json()
-                if "error" in response_data:
-                    raise RuntimeError(
-                        f"Failed to start sandbox: {response_data['error']['message']}"
-                    )
-
-                # Check the result message - it might indicate the sandbox is still initializing
-                result = response_data.get("result", "")
-                if isinstance(result, str) and "timed out waiting" in result:
-                    # Server timed out but still started the sandbox
-                    # We'll raise a warning but still consider it started
-                    import warnings
-
-                    warnings.warn(f"Sandbox start warning: {result}")
-
-                self._is_started = True
-        except aiohttp.ClientError as e:
-            if isinstance(e, asyncio.TimeoutError):
-                raise TimeoutError(
-                    f"Timed out waiting for sandbox to start after {timeout} seconds"
-                ) from e
-            raise RuntimeError(f"Failed to communicate with Microsandbox server: {e}")
+            # Create and start container
+            self._container_id = await self._runtime.create_container(config)
+            await self._runtime.start_container(self._container_id)
+            self._is_started = True
+        except Exception as e:
+            raise RuntimeError(f"Failed to start sandbox: {e}")
 
     async def stop(self) -> None:
         """
@@ -232,39 +185,16 @@ class BaseSandbox(ABC):
         Raises:
             RuntimeError: If the sandbox fails to stop
         """
-        if not self._is_started:
+        if not self._is_started or not self._container_id:
             return
 
-        request_data = {
-            "jsonrpc": "2.0",
-            "method": "sandbox.stop",
-            "params": {"namespace": self._namespace, "sandbox": self._name},
-            "id": str(uuid.uuid4()),
-        }
-
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
         try:
-            async with self._session.post(
-                f"{self._server_url}/api/v1/rpc",
-                json=request_data,
-                headers=headers,
-            ) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise RuntimeError(f"Failed to stop sandbox: {error_text}")
-
-                response_data = await response.json()
-                if "error" in response_data:
-                    raise RuntimeError(
-                        f"Failed to stop sandbox: {response_data['error']['message']}"
-                    )
-
-                self._is_started = False
-        except aiohttp.ClientError as e:
-            raise RuntimeError(f"Failed to communicate with Microsandbox server: {e}")
+            await self._runtime.stop_container(self._container_id)
+            await self._runtime.remove_container(self._container_id)
+            self._is_started = False
+            self._container_id = None
+        except Exception as e:
+            raise RuntimeError(f"Failed to stop sandbox: {e}")
 
     @abstractmethod
     async def run(self, code: str):
@@ -297,7 +227,30 @@ class BaseSandbox(ABC):
         """
         Access the metrics namespace for retrieving sandbox metrics.
 
+        TODO: Metrics functionality is not yet implemented for container-based sandboxes.
+        This will be implemented in a future version.
+
         Returns:
-            A Metrics instance bound to this sandbox
+            A placeholder object that raises NotImplementedError for all metric operations
         """
-        return Metrics(self)
+        # TODO: Implement metrics for container-based sandboxes
+        class MetricsTODO:
+            def __init__(self, sandbox_instance):
+                self._sandbox = sandbox_instance
+            
+            async def all(self):
+                raise NotImplementedError("Metrics functionality is not yet implemented for container-based sandboxes")
+            
+            async def cpu(self):
+                raise NotImplementedError("Metrics functionality is not yet implemented for container-based sandboxes")
+            
+            async def memory(self):
+                raise NotImplementedError("Metrics functionality is not yet implemented for container-based sandboxes")
+            
+            async def disk(self):
+                raise NotImplementedError("Metrics functionality is not yet implemented for container-based sandboxes")
+            
+            async def is_running(self):
+                raise NotImplementedError("Metrics functionality is not yet implemented for container-based sandboxes")
+        
+        return MetricsTODO(self)

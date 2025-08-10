@@ -1,13 +1,11 @@
 """
-Command execution interface for the Microsandbox Python SDK.
+Command execution interface for the LocalSandbox Python SDK.
 """
 
-import uuid
 from typing import List, Optional
 
-import aiohttp
-
 from .command_execution import CommandExecution
+from .config import get_config
 
 
 class Command:
@@ -50,46 +48,50 @@ class Command:
         if args is None:
             args = []
 
-        headers = {"Content-Type": "application/json"}
-        if self._sandbox._api_key:
-            headers["Authorization"] = f"Bearer {self._sandbox._api_key}"
-
-        # Prepare the request data
-        request_data = {
-            "jsonrpc": "2.0",
-            "method": "sandbox.command.run",
-            "params": {
-                "sandbox": self._sandbox._name,
-                "namespace": self._sandbox._namespace,
-                "command": command,
-                "args": args,
-            },
-            "id": str(uuid.uuid4()),
-        }
-
-        # Add timeout if specified
-        if timeout is not None:
-            request_data["params"]["timeout"] = timeout
+        # Build the complete command list
+        full_command = [command]
+        if args:
+            full_command.extend(args)
 
         try:
-            async with self._sandbox._session.post(
-                f"{self._sandbox._server_url}/api/v1/rpc",
-                json=request_data,
-                headers=headers,
-            ) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise RuntimeError(f"Failed to execute command: {error_text}")
-
-                response_data = await response.json()
-                if "error" in response_data:
-                    raise RuntimeError(
-                        f"Failed to execute command: {response_data['error']['message']}"
-                    )
-
-                result = response_data.get("result", {})
-
-                # Create and return a CommandExecution object with the output data
-                return CommandExecution(output_data=result)
-        except aiohttp.ClientError as e:
+            # Use configured timeout if not specified
+            if timeout is None:
+                config = get_config()
+                timeout = config.default_timeout
+            
+            # Execute command in the container using the container runtime
+            result = await self._sandbox._runtime.execute_command(
+                self._sandbox._container_id,
+                full_command,
+                timeout=timeout
+            )
+            
+            # Build output data in the expected format for CommandExecution
+            output_data = {
+                "output": [],
+                "command": command,
+                "args": args,
+                "exit_code": result["returncode"],
+                "success": result["returncode"] == 0
+            }
+            
+            # Add stdout output lines
+            if result["stdout"]:
+                for line in result["stdout"].splitlines():
+                    output_data["output"].append({
+                        "stream": "stdout",
+                        "text": line
+                    })
+            
+            # Add stderr output lines
+            if result["stderr"]:
+                for line in result["stderr"].splitlines():
+                    output_data["output"].append({
+                        "stream": "stderr",
+                        "text": line
+                    })
+            
+            return CommandExecution(output_data=output_data)
+            
+        except Exception as e:
             raise RuntimeError(f"Failed to execute command: {e}")

@@ -1,12 +1,12 @@
 """
-Node.js-specific sandbox implementation for the Microsandbox Python SDK.
+Node.js-specific sandbox implementation for the LocalSandbox Python SDK.
 """
 
+import os
 import uuid
 
-import aiohttp
-
 from .base_sandbox import BaseSandbox
+from .config import get_config
 from .execution import Execution
 
 
@@ -22,7 +22,8 @@ class NodeSandbox(BaseSandbox):
         Returns:
             A string containing the Docker image name and tag
         """
-        return "microsandbox/node"
+        config = get_config()
+        return config.default_node_image
 
     async def run(self, code: str) -> Execution:
         """
@@ -40,41 +41,42 @@ class NodeSandbox(BaseSandbox):
         if not self._is_started:
             raise RuntimeError("Sandbox is not started. Call start() first.")
 
-        headers = {"Content-Type": "application/json"}
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-
-        request_data = {
-            "jsonrpc": "2.0",
-            "method": "sandbox.repl.run",
-            "params": {
-                "sandbox": self._name,
-                "namespace": self._namespace,
-                "language": "nodejs",
-                "code": code,
-            },
-            "id": str(uuid.uuid4()),
-        }
-
+        # Execute JavaScript code in the container using Node.js
+        command = ["node", "-e", code]
+        
         try:
-            async with self._session.post(
-                f"{self._server_url}/api/v1/rpc",
-                json=request_data,
-                headers=headers,
-            ) as response:
-                if response.status != 200:
-                    error_text = await response.text()
-                    raise RuntimeError(f"Failed to execute code: {error_text}")
-
-                response_data = await response.json()
-                if "error" in response_data:
-                    raise RuntimeError(
-                        f"Failed to execute code: {response_data['error']['message']}"
-                    )
-
-                result = response_data.get("result", {})
-
-                # Create and return an Execution object with the output data
-                return Execution(output_data=result)
-        except aiohttp.ClientError as e:
+            # Use configured timeout
+            config = get_config()
+            result = await self._runtime.execute_command(
+                self._container_id,
+                command,
+                timeout=config.default_timeout
+            )
+            
+            # Build output data compatible with original Execution format
+            output_data = {
+                "output": [],
+                "status": "success" if result["returncode"] == 0 else "error",
+                "language": "nodejs"
+            }
+            
+            # Add stdout output
+            if result["stdout"]:
+                for line in result["stdout"].splitlines():
+                    output_data["output"].append({
+                        "stream": "stdout",
+                        "text": line
+                    })
+            
+            # Add stderr output
+            if result["stderr"]:
+                for line in result["stderr"].splitlines():
+                    output_data["output"].append({
+                        "stream": "stderr", 
+                        "text": line
+                    })
+            
+            return Execution(output_data=output_data)
+            
+        except Exception as e:
             raise RuntimeError(f"Failed to execute code: {e}")

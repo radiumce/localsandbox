@@ -1,18 +1,24 @@
-# Microsandbox Python SDK
+# LocalSandbox Python SDK
 
-A Python SDK for interacting with Microsandbox environments.
+A Python SDK for running code in local Docker containers, providing a secure and isolated execution environment.
 
 ## Installation
 
 ```bash
 # Install from PyPI
-pip install microsandbox
+pip install localsandbox
 
 # Or install from source
-git clone https://github.com/microsandbox/microsandbox.git
-cd microsandbox/sdk/python
+git clone https://github.com/localsandbox/localsandbox.git
+cd localsandbox/python
 pip install -e .
 ```
+
+## Requirements
+
+- Python 3.8+
+- Docker or Podman installed and running
+- Sufficient permissions to run containers
 
 ## Usage
 
@@ -20,7 +26,7 @@ pip install -e .
 
 ```python
 import asyncio
-from microsandbox import PythonSandbox
+from localsandbox import PythonSandbox
 
 async def main():
     # Using the context manager (automatically starts and stops the sandbox)
@@ -43,7 +49,7 @@ Share files between your host system and the sandbox using volume mappings:
 
 ```python
 import asyncio
-from microsandbox import PythonSandbox
+from localsandbox import PythonSandbox
 
 async def main():
     # Create sandbox with volume mappings
@@ -73,13 +79,13 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from microsandbox import PythonSandbox
+from localsandbox import PythonSandbox
 
 async def main():
     # Create sandbox with custom configuration
     async with PythonSandbox.create(
         name="my-custom-sandbox",
-        image="microsandbox/python:latest",  # Custom image
+        image="python:3.11-slim",            # Custom image
         memory=1024,                         # Memory in MB
         cpus=2.0,                           # CPU cores
         timeout=300.0,                      # Start timeout in seconds
@@ -99,7 +105,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from microsandbox import PythonSandbox
+from localsandbox import PythonSandbox
 
 async def main():
     async with PythonSandbox.create() as sandbox:
@@ -126,27 +132,51 @@ async def main():
 asyncio.run(main())
 ```
 
-## Requirements
+## Configuration
 
-- Python 3.8+
-- Running Microsandbox server (default: http://127.0.0.1:5555)
-- API key (if authentication is enabled on the server)
+LocalSandbox can be configured using environment variables:
 
-## Environment Variables
+### Container Runtime
 
-- `MSB_API_KEY`: Optional API key for authentication with the Microsandbox server
-- `MSB_SERVER_URL`: URL for the Microsandbox server (default: http://127.0.0.1:5555)
+- `CONTAINER_RUNTIME`: Container runtime to use (`docker` or `podman`, default: `docker`)
+
+### Default Images
+
+- `LOCALSANDBOX_PYTHON_IMAGE`: Default Python container image (default: `python:3.11-slim`)
+- `LOCALSANDBOX_NODE_IMAGE`: Default Node.js container image (default: `node:18-slim`)
+
+### Resource Limits
+
+- `LOCALSANDBOX_DEFAULT_MEMORY`: Default memory limit in MB (default: `512`)
+- `LOCALSANDBOX_DEFAULT_CPU`: Default CPU limit (default: `1.0`)
+- `LOCALSANDBOX_DEFAULT_TIMEOUT`: Default command execution timeout in seconds (default: `30`)
+
+### Container Configuration
+
+- `LOCALSANDBOX_WORKING_DIR`: Default working directory inside containers (default: `/workspace`)
+
+### Example Configuration
+
+Create a `.env` file in your project root:
+
+```bash
+# Container Runtime Configuration
+CONTAINER_RUNTIME=docker
+
+# Default Container Images
+LOCALSANDBOX_PYTHON_IMAGE=python:3.11-slim
+LOCALSANDBOX_NODE_IMAGE=node:18-slim
+
+# Default Resource Limits
+LOCALSANDBOX_DEFAULT_MEMORY=1024
+LOCALSANDBOX_DEFAULT_CPU=2.0
+LOCALSANDBOX_DEFAULT_TIMEOUT=60
+
+# Container Configuration
+LOCALSANDBOX_WORKING_DIR=/workspace
+```
 
 ## Examples
-
-Check out the [examples directory](./examples) for sample scripts that demonstrate how to:
-
-- Create and use sandboxes
-- Run code in sandbox environments
-- Execute shell commands in the sandbox
-- Handle execution output and error handling
-- Use volume mappings for file sharing
-- Work with multiple volume mappings
 
 ### Volume Mapping Examples
 
@@ -162,6 +192,44 @@ Volume mappings allow you to share files between your host filesystem and the sa
 - Process data files from your host system
 - Save sandbox output to your local filesystem
 - Create persistent storage for sandbox sessions
+
+### Using Different Container Runtimes
+
+```python
+import asyncio
+from localsandbox import PythonSandbox
+
+async def main():
+    # Use Docker (default)
+    async with PythonSandbox.create(container_runtime="docker") as sandbox:
+        execution = await sandbox.run("print('Running with Docker')")
+        print(await execution.output())
+    
+    # Use Podman
+    async with PythonSandbox.create(container_runtime="podman") as sandbox:
+        execution = await sandbox.run("print('Running with Podman')")
+        print(await execution.output())
+
+asyncio.run(main())
+```
+
+### Error Handling
+
+```python
+import asyncio
+from localsandbox import PythonSandbox
+
+async def main():
+    try:
+        async with PythonSandbox.create() as sandbox:
+            # This will raise an exception
+            execution = await sandbox.run("raise ValueError('Test error')")
+            print(await execution.output())
+    except RuntimeError as e:
+        print(f"Sandbox error: {e}")
+
+asyncio.run(main())
+```
 
 ## License
 
