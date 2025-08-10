@@ -24,6 +24,10 @@ from .exceptions import (
 from .logging_config import get_logger, track_operation, log_resource_event, log_sandbox_event
 from .models import ResourceStats, SandboxFlavor, SessionStatus
 
+# New SDK imports for container-based sandbox management
+from sandbox.container_runtime import DockerRuntime
+from sandbox.config import get_runtime_command
+
 if TYPE_CHECKING:
     from .session_manager import SessionManager
 
@@ -865,154 +869,67 @@ class ResourceManager:
     
     async def _get_running_sandboxes(self) -> List[Dict[str, str]]:
         """
-        Get all running sandboxes from the microsandbox server.
-        
-        This method queries the server's JSON-RPC API to get a list of all currently
-        running sandbox instances using the 'sandbox.metrics.get' method.
-        
+        Get all sandboxes created by this service via container labels.
+
+        Uses the container runtime to list containers (running or stopped)
+        filtered by label localsandbox=true. Returns entries with namespace,
+        name, running status, and container id. Resource metrics are omitted.
+
         Returns:
-            List[Dict[str, str]]: List of sandbox information dictionaries
-                                 containing 'namespace', 'name', and 'running' keys
+            List[Dict[str, str]]: items with keys 'namespace', 'name', 'running', 'id'
         """
         try:
-            logger.debug("Querying server for running sandboxes")
-            
-            # Prepare JSON-RPC request to get all sandbox metrics
-            rpc_request = {
-                "jsonrpc": "2.0",
-                "method": "sandbox.metrics.get",
-                "params": {
-                    "namespace": "*",  # Get sandboxes from all namespaces
-                    "sandbox": None    # Get all sandboxes (not just a specific one)
-                },
-                "id": 1
-            }
-            
-            # Make the API call
-            timeout = aiohttp.ClientTimeout(total=1800)  # 5 minute timeout
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                headers = {
-                    "Content-Type": "application/json"
-                }
-                
-                # Add API key if configured
-                if self._config.api_key:
-                    headers["Authorization"] = f"Bearer {self._config.api_key}"
-                
-                async with session.post(
-                    f"{self._config.server_url}/api/v1/rpc",
-                    json=rpc_request,
-                    headers=headers
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        
-                        # Check for JSON-RPC error
-                        if "error" in data:
-                            logger.error(f"RPC error getting sandbox metrics: {data['error']}")
-                            return []
-                        
-                        # Extract sandbox list from response
-                        result = data.get("result", {})
-                        sandboxes = result.get("sandboxes", [])
-                        
-                        # Filter to only running sandboxes and convert to our format
-                        running_sandboxes = []
-                        for sandbox in sandboxes:
-                            if sandbox.get("running", False):
-                                running_sandboxes.append({
-                                    "namespace": sandbox["namespace"],
-                                    "name": sandbox["name"],
-                                    "running": sandbox["running"],
-                                    "cpu_usage": sandbox.get("cpu_usage"),
-                                    "memory_usage": sandbox.get("memory_usage"),
-                                    "disk_usage": sandbox.get("disk_usage")
-                                })
-                        
-                        logger.debug(f"Found {len(running_sandboxes)} running sandboxes on server")
-                        return running_sandboxes
-                        
-                    else:
-                        logger.warning(
-                            f"Failed to get sandbox metrics: HTTP {response.status} - {await response.text()}"
-                        )
-                        return []
-            
-        except asyncio.TimeoutError:
-            logger.error("Timeout while querying server for running sandboxes")
-            return []
-        except aiohttp.ClientError as e:
-            logger.error(f"Network error getting running sandboxes from server: {e}")
-            return []
+            logger.debug("Listing containers with label localsandbox=true via SDK")
+
+            runtime = DockerRuntime(get_runtime_command())
+            containers = await runtime.list_containers(
+                all=True,
+                label_filters={"localsandbox": "true"}
+            )
+
+            results: List[Dict[str, str]] = []
+            for c in containers:
+                labels = c.get("labels", {}) or {}
+                namespace = labels.get("localsandbox.namespace", "default")
+                # Prefer explicit label name, fallback to container name
+                name = labels.get("localsandbox.name") or c.get("name")
+                if not name:
+                    # Skip if we cannot determine name
+                    continue
+                results.append({
+                    "namespace": namespace,
+                    "name": name,
+                    "running": bool(c.get("running", False)),
+                    "id": c.get("id"),
+                    # Keep optional fields for compatibility
+                    "cpu_usage": None,
+                    "memory_usage": None,
+                    "disk_usage": None,
+                })
+
+            logger.debug(f"Found {len(results)} sandboxes (localsandbox=true)")
+            return results
         except Exception as e:
-            logger.error(f"Error getting running sandboxes from server: {e}", exc_info=True)
+            logger.error(f"Error listing sandboxes via SDK: {e}", exc_info=True)
             return []
     
     async def _stop_orphan_sandbox(self, sandbox_info: Dict[str, str]) -> None:
         """
-        Stop an orphaned sandbox instance using the server's JSON-RPC API.
-        
-        This method calls the 'sandbox.stop' RPC method to cleanly stop
-        the orphaned sandbox instance.
-        
+        Stop and remove an orphaned sandbox container using the SDK.
+
         Args:
-            sandbox_info: Dictionary containing sandbox information with
-                         'namespace' and 'name' keys
+            sandbox_info: Dict with at least 'namespace', 'name', and 'id'
         """
         sandbox_key = f"{sandbox_info['namespace']}/{sandbox_info['name']}"
-        
+        container_id = sandbox_info.get("id")
+        if not container_id:
+            raise Exception(f"Missing container id for sandbox {sandbox_key}")
+
         try:
-            logger.debug(f"Stopping orphan sandbox via RPC: {sandbox_key}")
-            
-            # Prepare JSON-RPC request to stop the sandbox
-            rpc_request = {
-                "jsonrpc": "2.0",
-                "method": "sandbox.stop",
-                "params": {
-                    "sandbox": sandbox_info['name'],
-                    "namespace": sandbox_info['namespace']
-                },
-                "id": 1
-            }
-            
-            # Make the API call
-            timeout = aiohttp.ClientTimeout(total=1800)  # 5 minute timeout for stop operations
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                headers = {
-                    "Content-Type": "application/json"
-                }
-                
-                # Add API key if configured
-                if self._config.api_key:
-                    headers["Authorization"] = f"Bearer {self._config.api_key}"
-                
-                async with session.post(
-                    f"{self._config.server_url}/api/v1/rpc",
-                    json=rpc_request,
-                    headers=headers
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        
-                        # Check for JSON-RPC error
-                        if "error" in data:
-                            error_info = data["error"]
-                            raise Exception(f"RPC error stopping sandbox: {error_info}")
-                        
-                        # Success - log the result
-                        result = data.get("result", "")
-                        logger.debug(f"Successfully stopped orphan sandbox {sandbox_key}: {result}")
-                        
-                    else:
-                        response_text = await response.text()
-                        raise Exception(f"HTTP {response.status}: {response_text}")
-            
-        except asyncio.TimeoutError:
-            logger.error(f"Timeout while stopping orphan sandbox {sandbox_key}")
-            raise Exception(f"Timeout stopping sandbox {sandbox_key}")
-        except aiohttp.ClientError as e:
-            logger.error(f"Network error stopping orphan sandbox {sandbox_key}: {e}")
-            raise Exception(f"Network error stopping sandbox {sandbox_key}: {e}")
+            logger.debug(f"Stopping and removing orphan sandbox via SDK: {sandbox_key} ({container_id})")
+            runtime = DockerRuntime(get_runtime_command())
+            await runtime.stop_and_remove(container_id)
+            logger.debug(f"Successfully cleaned orphan sandbox {sandbox_key}")
         except Exception as e:
-            logger.error(f"Failed to stop orphan sandbox {sandbox_key}: {e}", exc_info=True)
+            logger.error(f"Failed to stop/remove orphan sandbox {sandbox_key}: {e}", exc_info=True)
             raise

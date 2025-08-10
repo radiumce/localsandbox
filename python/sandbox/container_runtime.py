@@ -29,6 +29,7 @@ class ContainerConfig:
     environment: Optional[Dict[str, str]] = field(default_factory=dict)  # Environment variables
     working_dir: str = "/workspace"  # Working directory inside container
     command: Optional[List[str]] = None  # Command to run in container
+    labels: Optional[Dict[str, str]] = field(default_factory=dict)  # Container labels
     
     def __post_init__(self):
         """Validate configuration parameters and set defaults."""
@@ -293,7 +294,13 @@ class DockerRuntime(ContainerRuntime):
         # Add environment variables
         for key, value in config.environment.items():
             args.extend(["-e", f"{key}={value}"])
-        
+
+        # Add labels
+        if config.labels:
+            for key, value in config.labels.items():
+                # docker requires key[=value]; always provide value for determinism
+                args.extend(["--label", f"{key}={value}"])
+
         # Add working directory
         args.extend(["-w", config.working_dir])
         
@@ -459,3 +466,82 @@ class DockerRuntime(ContainerRuntime):
         
         # Docker returns "true" or "false" as string
         return result["stdout"].strip().lower() == "true"
+
+    async def list_containers(
+        self,
+        all: bool = True,
+        label_filters: Optional[Dict[str, str]] = None,
+        timeout: Optional[int] = 15,
+    ) -> List[Dict[str, Any]]:
+        """
+        List containers with optional label filters.
+
+        Args:
+            all: If True, include stopped containers (docker ps -a)
+            label_filters: Dict of label_key -> label_value to filter by
+            timeout: Command timeout in seconds
+
+        Returns:
+            List of dicts containing id, name, labels, status, running
+        """
+        args: List[str] = ["ps"]
+        if all:
+            args.append("-a")
+
+        # Apply label filters
+        if label_filters:
+            for k, v in label_filters.items():
+                args.extend(["--filter", f"label={k}={v}"])
+
+        # Output each container as a JSON object per line
+        args.extend(["--format", "{{json .}}"])
+
+        result = await self._run_command(args, timeout=timeout)
+        if result["returncode"] != 0:
+            raise RuntimeError(f"Failed to list containers: {result['stderr']}")
+
+        lines = [l for l in result["stdout"].splitlines() if l.strip()]
+        containers: List[Dict[str, Any]] = []
+        for line in lines:
+            try:
+                obj = json.loads(line)
+            except json.JSONDecodeError:
+                # Skip malformed lines
+                continue
+
+            name = obj.get("Names") or obj.get("Name")
+            cid = obj.get("ID") or obj.get("Id")
+            status = obj.get("Status", "") or ""
+            labels_str = obj.get("Labels") or ""
+
+            # Parse labels string "k=v,m=n" into dict
+            labels: Dict[str, str] = {}
+            if labels_str and labels_str.lower() != "<none>":
+                for pair in labels_str.split(","):
+                    pair = pair.strip()
+                    if not pair:
+                        continue
+                    if "=" in pair:
+                        k, v = pair.split("=", 1)
+                        labels[k] = v
+                    else:
+                        labels[pair] = "true"
+
+            running = status.lower().startswith("up")
+            containers.append({
+                "id": cid,
+                "name": name,
+                "labels": labels,
+                "status": status,
+                "running": running,
+            })
+
+        return containers
+
+    async def stop_and_remove(self, container_id: str) -> None:
+        """Stop container if running and remove it."""
+        try:
+            if await self.is_container_running(container_id):
+                await self.stop_container(container_id)
+        finally:
+            await self.remove_container(container_id)

@@ -167,7 +167,12 @@ class BaseSandbox(ABC):
             cpus=cpu_limit,
             volumes=volumes or [],
             working_dir=self._config.default_working_dir,
-            command=["sleep", "infinity"]  # Keep container running
+            command=["sleep", "infinity"],  # Keep container running
+            labels={
+                "localsandbox": "true",
+                "localsandbox.namespace": self._namespace,
+                "localsandbox.name": self._name,
+            }
         )
         
         try:

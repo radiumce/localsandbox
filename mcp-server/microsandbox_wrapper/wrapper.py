@@ -60,8 +60,8 @@ class MicrosandboxWrapper:
         Initialize the microsandbox wrapper.
         
         Args:
-            server_url: Optional microsandbox server URL (overrides config/env)
-            api_key: Optional API key (overrides config/env)
+            server_url: Deprecated. Ignored in Docker-based implementation.
+            api_key: Deprecated. Ignored in Docker-based implementation.
             config: Optional configuration object (if not provided, loads from env)
             
         Raises:
@@ -72,11 +72,15 @@ class MicrosandboxWrapper:
             if config is None:
                 config = WrapperConfig.from_env()
             
-            # Override config values if explicitly provided
+            # Backward compatibility: warn if deprecated params are provided
             if server_url is not None:
-                config.server_url = server_url
+                logger.warning(
+                    "server_url parameter is deprecated and ignored. The wrapper now uses the sandbox SDK (DockerRuntime) instead of HTTP."
+                )
             if api_key is not None:
-                config.api_key = api_key
+                logger.warning(
+                    "api_key parameter is deprecated and ignored. The wrapper now uses the sandbox SDK (DockerRuntime) instead of HTTP."
+                )
             
             self._config = config
             

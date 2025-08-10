@@ -27,10 +27,6 @@ class WrapperConfig:
     with proper validation and default value handling.
     """
     
-    # Server configuration
-    server_url: str = "http://127.0.0.1:5555"
-    api_key: Optional[str] = None
-    
     # Session configuration
     session_timeout: int = 3600  # 30 minutes in seconds
     max_concurrent_sessions: int = 10
@@ -46,7 +42,7 @@ class WrapperConfig:
     shared_volume_mappings: List[str] = field(default_factory=list)
     
     # Orphan cleanup configuration
-    orphan_cleanup_interval: int = 600  # 10 minutes in seconds
+    orphan_cleanup_interval: int = 60  # 1 minute in seconds
     
     # LRU eviction configuration
     enable_lru_eviction: bool = True  # Enable LRU eviction when resource limits are reached
@@ -61,8 +57,6 @@ class WrapperConfig:
         sensible defaults for missing values.
         
         Environment Variables:
-            MSB_SERVER_URL: Microsandbox server URL
-            MSB_API_KEY: API key for authentication
             MSB_SESSION_TIMEOUT: Session timeout in seconds
             MSB_MAX_SESSIONS: Maximum concurrent sessions
             MSB_CLEANUP_INTERVAL: Session cleanup interval in seconds
@@ -96,7 +90,7 @@ class WrapperConfig:
             cleanup_interval = cls._parse_positive_int('MSB_CLEANUP_INTERVAL', 60)
             sandbox_start_timeout = cls._parse_positive_float('MSB_SANDBOX_START_TIMEOUT', 180.0)
             default_execution_timeout = cls._parse_positive_int('MSB_EXECUTION_TIMEOUT', 300)
-            orphan_cleanup_interval = cls._parse_positive_int('MSB_ORPHAN_CLEANUP_INTERVAL', 600)
+            orphan_cleanup_interval = cls._parse_positive_int('MSB_ORPHAN_CLEANUP_INTERVAL', 60)
             
             # Parse optional memory limit
             max_total_memory_mb = None
@@ -107,8 +101,6 @@ class WrapperConfig:
             enable_lru_eviction = cls._parse_boolean('MSB_ENABLE_LRU_EVICTION', True)
             
             config = cls(
-                server_url=os.getenv('MSB_SERVER_URL', 'http://127.0.0.1:5555'),
-                api_key=os.getenv('MSB_API_KEY'),
                 session_timeout=session_timeout,
                 max_concurrent_sessions=max_concurrent_sessions,
                 cleanup_interval=cleanup_interval,
@@ -423,13 +415,6 @@ class WrapperConfig:
         Raises:
             ConfigurationError: If validation fails
         """
-        # Validate server URL format
-        if not self.server_url.startswith(('http://', 'https://')):
-            raise ConfigurationError(
-                f"Invalid server URL format: {self.server_url}. "
-                "Must start with http:// or https://"
-            )
-        
         # Validate timeout relationships
         if self.cleanup_interval >= self.session_timeout:
             raise ConfigurationError(
@@ -589,11 +574,10 @@ class WrapperConfig:
         """
         return (
             f"WrapperConfig("
-            f"server_url={self.server_url}, "
-            f"api_key={'***' if self.api_key else None}, "
             f"session_timeout={self.session_timeout}s, "
             f"max_sessions={self.max_concurrent_sessions}, "
             f"default_flavor={self.default_flavor.value}, "
+            f"orphan_cleanup_interval={self.orphan_cleanup_interval}s, "
             f"volume_mappings={len(self.shared_volume_mappings)} mappings"
             f")"
         )
