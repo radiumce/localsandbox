@@ -102,7 +102,14 @@ async def execute_code(
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
     ctx: Context = None,
 ) -> str:
-    """Execute code in a sandbox with automatic session management."""
+    """Execute code in a sandbox with automatic session management. 
+    If you do not fill in the session_id parameter, the service will 
+    automatically create a new sandbox for you and return the session_id 
+    corresponding to this sandbox. This is generally used for starting tasks 
+    from scratch. When you fill in the session_id, the code will execute within 
+    the same sandbox instance corresponding to the session_id, thereby maintaining
+     the continuity of the sandbox state. This is a necessary foundation for 
+     continuously completing a series of tasks. """
     try:
         # Get wrapper from context
         wrapper = ctx.request_context.lifespan_context.wrapper
@@ -151,7 +158,14 @@ async def execute_command(
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
     ctx: Context = None,
 ) -> str:
-    """Execute a command line in a sandbox with automatic session management."""
+    """Execute a command line in a sandbox with automatic session management.
+    If you do not fill in the session_id parameter, the service will 
+    automatically create a new sandbox for you and return the session_id 
+    corresponding to this sandbox. This is generally used for starting tasks 
+    from scratch. When you fill in the session_id, the command will execute within 
+    the same sandbox instance corresponding to the session_id, thereby maintaining
+     the continuity of the sandbox state. This is a necessary foundation for 
+     continuously completing a series of tasks."""
     try:
         # Get wrapper from context
         wrapper = ctx.request_context.lifespan_context.wrapper
