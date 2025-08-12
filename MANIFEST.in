@@ -1,0 +1,57 @@
+# Include documentation and configuration files
+include README.md
+include QUICKSTART.md
+include INSTALLATION.md
+include LICENSE
+include *.md
+include *.txt
+include *.yml
+include *.yaml
+include *.sh
+include .env.example
+include test_installation.py
+
+# Include mcp-server files
+recursive-include mcp-server *.py
+recursive-include mcp-server *.md
+recursive-include mcp-server *.txt
+recursive-include mcp-server *.yml
+recursive-include mcp-server *.yaml
+recursive-include mcp-server *.sh
+recursive-include mcp-server *.ini
+recursive-include mcp-server .env.*
+include mcp-server/requirements.txt
+include mcp-server/setup.py
+include mcp-server/README.md
+# Legacy .env.docker files removed
+include mcp-server/.python-version
+include mcp-server/start_mcp_docker.sh
+
+# Include python SDK files
+recursive-include python *.py
+recursive-include python *.md
+recursive-include python *.txt
+recursive-include python *.toml
+recursive-include python *.lock
+include python/setup.py
+include python/README.md
+include python/.env.example
+include python/.python-version
+
+# Include tests
+recursive-include tests *.py
+recursive-include tests *.md
+recursive-include tests *.ini
+
+# Include docs
+recursive-include docs *.md
+
+# Exclude unnecessary files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude .git*
+global-exclude .DS_Store
+global-exclude *.so
+global-exclude *.dylib

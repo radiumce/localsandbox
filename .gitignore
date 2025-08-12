@@ -28,6 +28,9 @@ env/
 .env/
 .venv/
 
+# Local environment configuration
+.env.local
+
 # Distribution / packaging
 *.manifest
 *.spec
