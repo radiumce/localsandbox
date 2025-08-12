@@ -39,15 +39,18 @@ class PythonSandbox(BaseSandbox):
             raise RuntimeError("Sandbox is not started. Call start() first.")
 
         # Create Python script with error handling and output capture
-        # Escape single quotes in the code to prevent syntax errors
-        escaped_code = code.replace("'", "\\'")
+        # Use base64 encoding to safely pass the code without escaping issues
+        import base64
+        encoded_code = base64.b64encode(code.encode('utf-8')).decode('ascii')
         script_content = f"""
 import sys
 import traceback
+import base64
 
 try:
-    # Execute user code
-    exec('''{escaped_code}''')
+    # Decode and execute user code
+    user_code = base64.b64decode('{encoded_code}').decode('utf-8')
+    exec(user_code)
 except Exception as e:
     # Print exception to stderr and exit with error code
     traceback.print_exc()
