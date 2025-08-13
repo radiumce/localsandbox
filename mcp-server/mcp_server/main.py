@@ -179,24 +179,20 @@ def run_http_server(server_app, config):
     # Create a lifespan manager that manages FastMCP session manager AND wrapper
     @contextlib.asynccontextmanager
     async def app_lifespan(app: Starlette):
-        # Import here to get access to the counter
         from mcp_server.server import get_or_create_wrapper
-        import mcp_server.server as server_module
         
-        server_module._http_lifespan_calls += 1
-        call_num = server_module._http_lifespan_calls
-        logger.info(f"HTTP server lifespan started (call #{call_num})")
+        logger.info("HTTP server lifespan started")
         
         async with contextlib.AsyncExitStack() as stack:
             # Start the wrapper first - this ensures background tasks start in main event loop
             wrapper = await get_or_create_wrapper()
-            logger.info(f"Wrapper initialized and started in HTTP server lifespan (call #{call_num})")
+            logger.info("Wrapper initialized and started in HTTP server lifespan")
             
             # Start the FastMCP session manager
             await stack.enter_async_context(server_app.session_manager.run())
             yield
         
-        logger.info(f"HTTP server lifespan ending (call #{call_num})")
+        logger.info("HTTP server lifespan ending")
     
     # Create Starlette app and mount the MCP server
     app = Starlette(
@@ -239,24 +235,20 @@ def run_sse_server(server_app, config):
     # Create a lifespan manager that manages FastMCP session manager AND wrapper
     @contextlib.asynccontextmanager
     async def app_lifespan(app: Starlette):
-        # Import here to get access to the counter
         from mcp_server.server import get_or_create_wrapper
-        import mcp_server.server as server_module
         
-        server_module._sse_lifespan_calls += 1
-        call_num = server_module._sse_lifespan_calls
-        logger.info(f"SSE server lifespan started (call #{call_num})")
+        logger.info("SSE server lifespan started")
         
         async with contextlib.AsyncExitStack() as stack:
             # Start the wrapper first - this ensures background tasks start in main event loop
             wrapper = await get_or_create_wrapper()
-            logger.info(f"Wrapper initialized and started in SSE server lifespan (call #{call_num})")
+            logger.info("Wrapper initialized and started in SSE server lifespan")
             
             # Start the FastMCP session manager
             await stack.enter_async_context(server_app.session_manager.run())
             yield
         
-        logger.info(f"SSE server lifespan ending (call #{call_num})")
+        logger.info("SSE server lifespan ending")
     
     # Create Starlette app and mount the MCP server
     app = Starlette(
