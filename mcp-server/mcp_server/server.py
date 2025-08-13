@@ -48,6 +48,11 @@ _wrapper_lock = asyncio.Lock()
 _wrapper_initialized = False
 _shutdown_registered = False
 
+# Lifespan call counters for debugging
+_mcp_lifespan_calls = 0
+_http_lifespan_calls = 0
+_sse_lifespan_calls = 0
+
 
 async def get_or_create_wrapper() -> MicrosandboxWrapper:
     """Get or create the global wrapper instance."""
@@ -144,8 +149,25 @@ def shutdown_wrapper_sync() -> None:
         logger.debug("Signal handler: wrapper not started, nothing to shutdown")
 
 
-# Create MCP server WITHOUT lifespan management - wrapper is managed at process level
-mcp = FastMCP("Microsandbox Server")
+# Create MCP server with lifespan management for wrapper initialization
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def mcp_lifespan(app):
+    """Lifespan manager for FastMCP - does NOT initialize wrapper (session-level, called for each MCP connection)."""
+    global _mcp_lifespan_calls
+    _mcp_lifespan_calls += 1
+    logger.info(f"FastMCP lifespan started (session-level call #{_mcp_lifespan_calls})")
+    
+    # DO NOT initialize wrapper here - this is called for each MCP session/connection
+    # Wrapper initialization should happen at process level instead
+    
+    yield
+    
+    logger.info(f"FastMCP lifespan ending (session-level call #{_mcp_lifespan_calls})")
+    # No wrapper management - wrapper is managed at process level
+
+mcp = FastMCP("Microsandbox Server", lifespan=mcp_lifespan)
 
 
 # Direct parameter definitions - no wrapper models needed

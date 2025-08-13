@@ -123,25 +123,12 @@ def main():
     setup_logging(level=args.log_level)
     logger = get_logger(__name__)
     
-    # Initialize wrapper BEFORE starting MCP server
-    # This ensures wrapper is active throughout server lifecycle
-    if args.transport != "stdio":
-        logger.info("Initializing wrapper before MCP server startup")
-    
-    import asyncio
-    from mcp_server.server import get_or_create_wrapper
-    
-    # Create wrapper in the main thread
-    async def init_wrapper():
-        await get_or_create_wrapper()
-        if args.transport != "stdio":
-            logger.info("Wrapper initialization completed")
-    
-    # Run wrapper initialization
-    asyncio.run(init_wrapper())
-    
     # Setup cleanup handlers for graceful shutdown
     setup_cleanup_handlers()
+    
+    # Wrapper will be initialized when the server starts via lifespan events
+    # This ensures background tasks are created in the main event loop
+    logger.debug("Wrapper will initialize when server starts")
 
     try:
         # Only log startup for non-stdio transports to avoid interfering with MCP protocol
@@ -186,14 +173,30 @@ def run_http_server(server_app, config):
     from starlette.routing import Mount
     from starlette.middleware.cors import CORSMiddleware
     
-    # Create a lifespan manager that only manages FastMCP session manager
-    # Wrapper is managed at process level independently
+    # Get logger for this function
+    logger = get_logger(__name__)
+    
+    # Create a lifespan manager that manages FastMCP session manager AND wrapper
     @contextlib.asynccontextmanager
     async def app_lifespan(app: Starlette):
+        # Import here to get access to the counter
+        from mcp_server.server import get_or_create_wrapper
+        import mcp_server.server as server_module
+        
+        server_module._http_lifespan_calls += 1
+        call_num = server_module._http_lifespan_calls
+        logger.info(f"HTTP server lifespan started (call #{call_num})")
+        
         async with contextlib.AsyncExitStack() as stack:
+            # Start the wrapper first - this ensures background tasks start in main event loop
+            wrapper = await get_or_create_wrapper()
+            logger.info(f"Wrapper initialized and started in HTTP server lifespan (call #{call_num})")
+            
             # Start the FastMCP session manager
             await stack.enter_async_context(server_app.session_manager.run())
             yield
+        
+        logger.info(f"HTTP server lifespan ending (call #{call_num})")
     
     # Create Starlette app and mount the MCP server
     app = Starlette(
@@ -230,14 +233,30 @@ def run_sse_server(server_app, config):
     from starlette.routing import Mount
     from starlette.middleware.cors import CORSMiddleware
     
-    # Create a lifespan manager that only manages FastMCP session manager
-    # Wrapper is managed at process level independently
+    # Get logger for this function
+    logger = get_logger(__name__)
+    
+    # Create a lifespan manager that manages FastMCP session manager AND wrapper
     @contextlib.asynccontextmanager
     async def app_lifespan(app: Starlette):
+        # Import here to get access to the counter
+        from mcp_server.server import get_or_create_wrapper
+        import mcp_server.server as server_module
+        
+        server_module._sse_lifespan_calls += 1
+        call_num = server_module._sse_lifespan_calls
+        logger.info(f"SSE server lifespan started (call #{call_num})")
+        
         async with contextlib.AsyncExitStack() as stack:
+            # Start the wrapper first - this ensures background tasks start in main event loop
+            wrapper = await get_or_create_wrapper()
+            logger.info(f"Wrapper initialized and started in SSE server lifespan (call #{call_num})")
+            
             # Start the FastMCP session manager
             await stack.enter_async_context(server_app.session_manager.run())
             yield
+        
+        logger.info(f"SSE server lifespan ending (call #{call_num})")
     
     # Create Starlette app and mount the MCP server
     app = Starlette(
