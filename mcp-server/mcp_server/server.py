@@ -61,10 +61,10 @@ async def get_or_create_wrapper() -> MicrosandboxWrapper:
             _wrapper_initialized = True
             logger.info("Global MicrosandboxWrapper started successfully - orphan cleanup and resource management are now active")
             
-            # Register process-level shutdown handler only once
+            # Register process-level atexit handler only once
+            # Signal handlers are managed by main.py
             if not _shutdown_registered:
                 import atexit
-                import signal
                 
                 def sync_shutdown():
                     """Synchronous wrapper for shutdown_wrapper."""
@@ -77,18 +77,10 @@ async def get_or_create_wrapper() -> MicrosandboxWrapper:
                         except Exception as e:
                             logger.error(f"Error during process exit wrapper shutdown: {e}")
                 
-                def signal_handler(signum, frame):
-                    """Signal handler for graceful shutdown."""
-                    logger.info(f"Signal {signum} received - shutting down MicrosandboxWrapper")
-                    sync_shutdown()
-                    exit(0)
-                
-                # Register handlers
+                # Register only atexit handler - signals handled by main.py
                 atexit.register(sync_shutdown)
-                signal.signal(signal.SIGINT, signal_handler)
-                signal.signal(signal.SIGTERM, signal_handler)
                 _shutdown_registered = True
-                logger.info("Process-level shutdown handlers registered for MicrosandboxWrapper")
+                logger.info("Process-level atexit handler registered for MicrosandboxWrapper")
         
         return _global_wrapper
 
@@ -114,6 +106,42 @@ async def shutdown_wrapper() -> None:
     # The wrapper will be shutdown when the process exits
     logger.debug("shutdown_wrapper() called - ignoring due to process-level management")
     pass
+
+
+def shutdown_wrapper_sync() -> None:
+    """Synchronously shutdown the global wrapper instance - for signal handlers."""
+    global _global_wrapper
+    
+    if _global_wrapper is not None and _global_wrapper.is_started():
+        logger.info("Signal handler: shutting down MicrosandboxWrapper")
+        try:
+            # Use asyncio.run to properly shutdown the wrapper in a new event loop
+            # This avoids conflicts with any existing event loop
+            import asyncio
+            loop = None
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No running loop, safe to use asyncio.run
+                asyncio.run(_force_shutdown_wrapper())
+                return
+            
+            # If there's a running loop, we need to be more careful
+            # Create a new thread to run the shutdown
+            import threading
+            import concurrent.futures
+            
+            def shutdown_in_thread():
+                asyncio.run(_force_shutdown_wrapper())
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(shutdown_in_thread)
+                future.result(timeout=5.0)  # Wait up to 5 seconds for shutdown
+                
+        except Exception as e:
+            logger.error(f"Error during signal handler wrapper shutdown: {e}")
+    else:
+        logger.debug("Signal handler: wrapper not started, nothing to shutdown")
 
 
 # Create MCP server WITHOUT lifespan management - wrapper is managed at process level

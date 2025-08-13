@@ -96,11 +96,19 @@ def setup_cleanup_handlers():
     def signal_handler(signum, frame):
         """Signal handler for graceful shutdown."""
         print(f"Received signal {signum}, shutting down...", file=sys.stderr)
-        # For now, rely on the MCP SDK's own cleanup mechanisms
-        # The global wrapper will be cleaned up when the process exits
+        
+        # Import here to avoid circular imports
+        from mcp_server.server import shutdown_wrapper_sync
+        
+        # Try to shutdown wrapper cleanly before exiting
+        try:
+            shutdown_wrapper_sync()
+        except Exception as e:
+            print(f"Warning: Error during wrapper shutdown: {e}", file=sys.stderr)
+        
         sys.exit(0)
     
-    # Register signal handlers only - let process exit handle cleanup
+    # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
