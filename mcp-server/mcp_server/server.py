@@ -25,6 +25,10 @@ from microsandbox_wrapper.exceptions import (
     CodeExecutionError,
     CommandExecutionError,
     SessionNotFoundError,
+    ContainerNotFoundError,
+    PinnedSandboxNotFoundError,
+    ContainerStartError,
+    SessionCreationError,
     ConnectionError as WrapperConnectionError
 )
 
@@ -38,55 +42,82 @@ class AppContext:
     wrapper: MicrosandboxWrapper
 
 
-# Global wrapper instance - shared across all sessions
+# Global wrapper instance - managed at process level, independent of FastMCP lifespan
 _global_wrapper: Optional[MicrosandboxWrapper] = None
 _wrapper_lock = asyncio.Lock()
+_wrapper_initialized = False
+_shutdown_registered = False
 
 
 async def get_or_create_wrapper() -> MicrosandboxWrapper:
     """Get or create the global wrapper instance."""
-    global _global_wrapper
+    global _global_wrapper, _wrapper_initialized, _shutdown_registered
     
     async with _wrapper_lock:
         if _global_wrapper is None:
-            logger.info("Creating global MicrosandboxWrapper instance")
+            logger.info("Creating and starting global MicrosandboxWrapper instance (process-level)")
             _global_wrapper = MicrosandboxWrapper()
             await _global_wrapper.start()
-            logger.info("Global MicrosandboxWrapper started successfully")
+            _wrapper_initialized = True
+            logger.info("Global MicrosandboxWrapper started successfully - orphan cleanup and resource management are now active")
+            
+            # Register process-level shutdown handler only once
+            if not _shutdown_registered:
+                import atexit
+                import signal
+                
+                def sync_shutdown():
+                    """Synchronous wrapper for shutdown_wrapper."""
+                    if _global_wrapper is not None and _global_wrapper.is_started():
+                        logger.info("Process exit detected - shutting down MicrosandboxWrapper")
+                        # Use asyncio.run to properly shutdown the wrapper
+                        try:
+                            import asyncio
+                            asyncio.run(_force_shutdown_wrapper())
+                        except Exception as e:
+                            logger.error(f"Error during process exit wrapper shutdown: {e}")
+                
+                def signal_handler(signum, frame):
+                    """Signal handler for graceful shutdown."""
+                    logger.info(f"Signal {signum} received - shutting down MicrosandboxWrapper")
+                    sync_shutdown()
+                    exit(0)
+                
+                # Register handlers
+                atexit.register(sync_shutdown)
+                signal.signal(signal.SIGINT, signal_handler)
+                signal.signal(signal.SIGTERM, signal_handler)
+                _shutdown_registered = True
+                logger.info("Process-level shutdown handlers registered for MicrosandboxWrapper")
         
         return _global_wrapper
 
 
-async def shutdown_wrapper() -> None:
-    """Shutdown the global wrapper instance."""
+async def _force_shutdown_wrapper() -> None:
+    """Force shutdown the global wrapper instance - used by process exit handlers."""
     global _global_wrapper
     
-    async with _wrapper_lock:
-        if _global_wrapper is not None:
-            logger.info("Shutting down global MicrosandboxWrapper")
+    if _global_wrapper is not None:
+        try:
+            logger.info("Force shutting down global MicrosandboxWrapper")
             await _global_wrapper.stop()
-            logger.info("Global MicrosandboxWrapper shutdown complete")
+            logger.info("Global MicrosandboxWrapper force shutdown complete")
+        except Exception as e:
+            logger.error(f"Error during force shutdown: {e}")
+        finally:
             _global_wrapper = None
 
 
-@asynccontextmanager
-async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
-    """Manage application lifecycle with persistent MicrosandboxWrapper."""
-    logger.info("Starting MCP Server with official SDK")
-    
-    # Get or create the global wrapper (will be created only once)
-    wrapper = await get_or_create_wrapper()
-    
-    try:
-        yield AppContext(wrapper=wrapper)
-    finally:
-        # Don't shutdown wrapper here - it should persist across sessions
-        # The wrapper will be shut down when the server process terminates
-        logger.info("MCP Server session complete")
+async def shutdown_wrapper() -> None:
+    """Shutdown the global wrapper instance - no-op for process-level management."""
+    # For process-level management, we don't shutdown on FastMCP lifespan events
+    # The wrapper will be shutdown when the process exits
+    logger.debug("shutdown_wrapper() called - ignoring due to process-level management")
+    pass
 
 
-# Create MCP server with lifespan management
-mcp = FastMCP("Microsandbox Server", lifespan=app_lifespan)
+# Create MCP server WITHOUT lifespan management - wrapper is managed at process level
+mcp = FastMCP("Microsandbox Server")
 
 
 # Direct parameter definitions - no wrapper models needed
@@ -111,8 +142,8 @@ async def execute_code(
      the continuity of the sandbox state. This is a necessary foundation for 
      continuously completing a series of tasks. """
     try:
-        # Get wrapper from context
-        wrapper = ctx.request_context.lifespan_context.wrapper
+        # Always use the global wrapper instance for consistent behavior across all transports
+        wrapper = await get_or_create_wrapper()
         
         # Convert flavor string to enum
         flavor_enum = SandboxFlavor(flavor)
@@ -167,8 +198,8 @@ async def execute_command(
      the continuity of the sandbox state. This is a necessary foundation for 
      continuously completing a series of tasks."""
     try:
-        # Get wrapper from context
-        wrapper = ctx.request_context.lifespan_context.wrapper
+        # Always use the global wrapper instance for consistent behavior across all transports
+        wrapper = await get_or_create_wrapper()
         
         # Convert flavor string to enum
         flavor_enum = SandboxFlavor(flavor)
@@ -214,8 +245,8 @@ async def get_sessions(
 ) -> str:
     """Get information about active sandbox sessions."""
     try:
-        # Get wrapper from context
-        wrapper = ctx.request_context.lifespan_context.wrapper
+        # Always use the global wrapper instance for consistent behavior across all transports
+        wrapper = await get_or_create_wrapper()
         
         # Get sessions through wrapper
         sessions = await wrapper.get_sessions(session_id)
@@ -252,8 +283,8 @@ async def stop_session(
 ) -> str:
     """Stop a specific sandbox session and clean up its resources."""
     try:
-        # Get wrapper from context
-        wrapper = ctx.request_context.lifespan_context.wrapper
+        # Always use the global wrapper instance for consistent behavior across all transports
+        wrapper = await get_or_create_wrapper()
         
         # Stop session through wrapper
         success = await wrapper.stop_session(session_id)
@@ -272,8 +303,8 @@ async def stop_session(
 async def get_volume_mappings(ctx: Context = None) -> str:
     """Get configured volume mappings between host and container paths."""
     try:
-        # Get wrapper from context
-        wrapper = ctx.request_context.lifespan_context.wrapper
+        # Always use the global wrapper instance for consistent behavior across all transports
+        wrapper = await get_or_create_wrapper()
         
         # Get volume mappings through wrapper
         mappings = await wrapper.get_volume_mappings()
@@ -291,6 +322,65 @@ async def get_volume_mappings(ctx: Context = None) -> str:
     except Exception as e:
         logger.error(f"Get volume mappings failed: {e}", exc_info=True)
         raise
+
+
+@mcp.tool()
+async def pin_sandbox(
+    session_id: str = Field(description="ID of the session to pin"),
+    pinned_name: str = Field(description="Human-readable name for the pinned sandbox"),
+    ctx: Context = None,
+) -> str:
+    """Pin a sandbox with a custom name for persistence beyond session cleanup."""
+    try:
+        # Always use the global wrapper instance for consistent behavior across all transports
+        wrapper = await get_or_create_wrapper()
+        
+        # Call wrapper's pin_session method
+        result = await wrapper.pin_session(session_id, pinned_name)
+        
+        return result
+        
+    except SessionNotFoundError as e:
+        logger.error(f"Pin sandbox failed - session not found: {e}", exc_info=True)
+        return f"Error: {e.message}"
+    except ContainerNotFoundError as e:
+        logger.error(f"Pin sandbox failed - container not found: {e}", exc_info=True)
+        return f"Error: {e.message}"
+    except RuntimeError as e:
+        logger.error(f"Pin sandbox failed - runtime error: {e}", exc_info=True)
+        return f"Error: {str(e)}"
+    except Exception as e:
+        logger.error(f"Pin sandbox failed with unexpected error: {e}", exc_info=True)
+        return f"Error: An unexpected error occurred while pinning sandbox: {str(e)}"
+
+
+@mcp.tool()
+async def attach_sandbox_by_name(
+    pinned_name: str = Field(description="Name of the pinned sandbox to attach to"),
+    ctx: Context = None,
+) -> str:
+    """Attach to a previously pinned sandbox by name and return session ID."""
+    try:
+        # Always use the global wrapper instance for consistent behavior across all transports
+        wrapper = await get_or_create_wrapper()
+        
+        # Call wrapper's attach_to_pinned_sandbox method
+        session_id = await wrapper.attach_to_pinned_sandbox(pinned_name)
+        
+        return f"Successfully attached to pinned sandbox '{pinned_name}'. Session ID: {session_id}"
+        
+    except PinnedSandboxNotFoundError as e:
+        logger.error(f"Attach sandbox failed - pinned sandbox not found: {e}", exc_info=True)
+        return f"Error: {e.message}"
+    except ContainerStartError as e:
+        logger.error(f"Attach sandbox failed - container start error: {e}", exc_info=True)
+        return f"Error: {e.message}"
+    except SessionCreationError as e:
+        logger.error(f"Attach sandbox failed - session creation error: {e}", exc_info=True)
+        return f"Error: {e.message}"
+    except Exception as e:
+        logger.error(f"Attach sandbox failed with unexpected error: {e}", exc_info=True)
+        return f"Error: An unexpected error occurred while attaching to pinned sandbox: {str(e)}"
 
 
 def create_server_app() -> FastMCP:

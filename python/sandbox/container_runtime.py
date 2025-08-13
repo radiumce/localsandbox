@@ -188,6 +188,22 @@ class ContainerRuntime(ABC):
             RuntimeError: If stats retrieval fails
         """
         pass
+
+    @abstractmethod
+    async def get_container_info(self, container_name_or_id: str) -> Dict[str, Any]:
+        """
+        Get detailed information about a specific container.
+        
+        Args:
+            container_name_or_id: Container name or ID
+            
+        Returns:
+            Dictionary containing container information
+            
+        Raises:
+            RuntimeError: If the container is not found or command fails
+        """
+        pass
     
     @abstractmethod
     async def is_container_running(self, container_id: str) -> bool:
@@ -538,10 +554,213 @@ class DockerRuntime(ContainerRuntime):
 
         return containers
 
-    async def stop_and_remove(self, container_id: str) -> None:
-        """Stop container if running and remove it."""
+    async def rename_container(self, container_id: str, new_name: str) -> None:
+        """
+        Rename a container.
+        
+        Args:
+            container_id: ID or current name of the container to rename
+            new_name: New name for the container
+            
+        Raises:
+            RuntimeError: If container rename fails
+        """
+        result = await self._run_command(["rename", container_id, new_name], timeout=30)
+        
+        if result["returncode"] != 0:
+            raise RuntimeError(f"Failed to rename container {container_id} to {new_name}: {result['stderr']}")
+
+    async def update_container_labels(self, container_id: str, labels: Dict[str, str]) -> None:
+        """
+        Update container labels by creating a new container with updated labels.
+        
+        Note: Docker doesn't support updating labels on existing containers,
+        so this method uses docker commit and docker run to create a new container
+        with the updated labels, then removes the old one.
+        
+        Args:
+            container_id: ID or name of the container to update labels for
+            labels: Dictionary of label key-value pairs to add/update
+            
+        Raises:
+            RuntimeError: If label update fails
+        """
+        # Get current container configuration
+        inspect_result = await self._run_command(["inspect", container_id], timeout=10)
+        if inspect_result["returncode"] != 0:
+            raise RuntimeError(f"Failed to inspect container {container_id}: {inspect_result['stderr']}")
+        
         try:
+            container_info = json.loads(inspect_result["stdout"])[0]
+            current_labels = container_info.get("Config", {}).get("Labels") or {}
+            
+            # Merge new labels with existing ones
+            updated_labels = {**current_labels, **labels}
+            
+            # Create label arguments for docker run
+            label_args = []
+            for key, value in updated_labels.items():
+                label_args.extend(["--label", f"{key}={value}"])
+            
+            # Get container name for the new container
+            container_name = container_info.get("Name", "").lstrip("/")
+            if not container_name:
+                raise RuntimeError(f"Could not determine name for container {container_id}")
+            
+            # Stop the container if it's running
+            was_running = await self.is_container_running(container_id)
+            if was_running:
+                await self.stop_container(container_id)
+            
+            # Commit the container to create an image
+            temp_image = f"{container_name}_temp_image"
+            commit_result = await self._run_command(["commit", container_id, temp_image], timeout=30)
+            if commit_result["returncode"] != 0:
+                raise RuntimeError(f"Failed to commit container {container_id}: {commit_result['stderr']}")
+            
+            try:
+                # Get original container configuration for recreation
+                config = container_info.get("Config", {})
+                host_config = container_info.get("HostConfig", {})
+                
+                # Build run command with updated labels
+                run_args = ["run", "-d"]
+                run_args.extend(label_args)
+                run_args.extend(["--name", f"{container_name}_new"])
+                
+                # Add memory limit if present
+                if host_config.get("Memory"):
+                    memory_mb = host_config["Memory"] // (1024 * 1024)
+                    run_args.extend(["--memory", f"{memory_mb}m"])
+                
+                # Add CPU limit if present  
+                if host_config.get("NanoCpus"):
+                    cpus = host_config["NanoCpus"] / 1000000000
+                    run_args.extend(["--cpus", str(cpus)])
+                
+                # Add volumes
+                mounts = container_info.get("Mounts", [])
+                for mount in mounts:
+                    if mount.get("Type") == "bind":
+                        source = mount.get("Source")
+                        destination = mount.get("Destination")
+                        if source and destination:
+                            run_args.extend(["-v", f"{source}:{destination}"])
+                
+                # Add environment variables
+                env_vars = config.get("Env", [])
+                for env_var in env_vars:
+                    if "=" in env_var:
+                        run_args.extend(["-e", env_var])
+                
+                # Add working directory
+                working_dir = config.get("WorkingDir")
+                if working_dir:
+                    run_args.extend(["-w", working_dir])
+                
+                # Add the image
+                run_args.append(temp_image)
+                
+                # Add command if present
+                cmd = config.get("Cmd")
+                if cmd:
+                    run_args.extend(cmd)
+                
+                # Create new container with updated labels
+                create_result = await self._run_command(run_args, timeout=30)
+                if create_result["returncode"] != 0:
+                    raise RuntimeError(f"Failed to create container with updated labels: {create_result['stderr']}")
+                
+                # Remove old container
+                await self.remove_container(container_id)
+                
+                # Rename new container to original name
+                await self.rename_container(f"{container_name}_new", container_name)
+                
+                # Start the new container if the original was running
+                if was_running:
+                    await self.start_container(container_name)
+                    
+            finally:
+                # Clean up temporary image
+                await self._run_command(["rmi", temp_image], timeout=10)
+                
+        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            raise RuntimeError(f"Failed to parse container inspection data: {e}")
+
+    async def get_container_info(self, container_name_or_id: str) -> Dict[str, Any]:
+        """
+        Get detailed information about a specific container.
+        
+        Args:
+            container_name_or_id: Container name or ID
+            
+        Returns:
+            Dictionary containing container information
+            
+        Raises:
+            RuntimeError: If the container is not found or command fails
+        """
+        inspect_result = await self._run_command(["inspect", container_name_or_id], timeout=10)
+        if inspect_result["returncode"] != 0:
+            raise RuntimeError(f"Container {container_name_or_id} not found: {inspect_result['stderr']}")
+        
+        try:
+            container_info = json.loads(inspect_result["stdout"])[0]
+            return container_info
+        except (json.JSONDecodeError, KeyError, IndexError) as e:
+            raise RuntimeError(f"Failed to parse container inspection data: {e}")
+
+    async def get_containers_by_label(self, label_filters: Dict[str, str]) -> List[Dict[str, Any]]:
+        """
+        Find containers by label filters.
+        
+        Args:
+            label_filters: Dictionary of label key-value pairs to filter by
+            
+        Returns:
+            List of dictionaries containing container information:
+            - id: Container ID
+            - name: Container name
+            - labels: Dictionary of container labels
+            - status: Container status string
+            - running: Boolean indicating if container is running
+            
+        Raises:
+            RuntimeError: If container listing fails
+        """
+        return await self.list_containers(all=True, label_filters=label_filters)
+
+    async def stop_and_remove(self, container_id: str) -> None:
+        """
+        Stop container if running and remove it.
+        
+        For pinned containers (those with pinned=true label), only stop the container
+        but do not remove it to preserve the pinned sandbox.
+        """
+        try:
+            # Check if container is pinned by inspecting its labels
+            inspect_result = await self._run_command(["inspect", container_id], timeout=10)
+            is_pinned = False
+            
+            if inspect_result["returncode"] == 0:
+                try:
+                    container_info = json.loads(inspect_result["stdout"])[0]
+                    labels = container_info.get("Config", {}).get("Labels") or {}
+                    is_pinned = labels.get("pinned", "").lower() == "true"
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    # If we can't parse labels, assume not pinned
+                    is_pinned = False
+            
+            # Stop the container if it's running
             if await self.is_container_running(container_id):
                 await self.stop_container(container_id)
-        finally:
-            await self.remove_container(container_id)
+            
+            # Only remove if not pinned
+            if not is_pinned:
+                await self.remove_container(container_id)
+                
+        except RuntimeError as e:
+            # If container doesn't exist, that's fine for cleanup operations
+            if "No such container" not in str(e):
+                raise

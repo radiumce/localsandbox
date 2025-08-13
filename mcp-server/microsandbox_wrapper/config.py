@@ -135,9 +135,9 @@ class WrapperConfig:
         Parse shared volume mappings from environment variable.
         
         Supports multiple formats:
-        - JSON array: ["host1:container1", "host2:container2"]
-        - Comma-separated: "host1:container1,host2:container2"
-        - Single mapping: "host1:container1"
+        - JSON array: ["host1:sandbox1", "host2:sandbox2"]
+        - Comma-separated: "host1:sandbox1,host2:sandbox2"
+        - Single mapping: "host1:sandbox1"
         - Empty/disabled: empty string or None
         
         Returns:
@@ -201,7 +201,7 @@ class WrapperConfig:
                     if not isinstance(mapping, str):
                         raise ConfigurationError(
                             f"MSB_SHARED_VOLUME_PATH item {i} must be a string, got {type(mapping).__name__}. "
-                            f"All volume mappings must be strings like 'host_path:container_path'"
+                            f"All volume mappings must be strings like 'host_path:sandbox_path'"
                         )
                 
                 # Validate volume mapping format
@@ -260,7 +260,7 @@ class WrapperConfig:
                 raise ConfigurationError(
                     f"Invalid volume mapping at position {i} in MSB_SHARED_VOLUME_PATH: {e}\n"
                     f"Got: '{mapping}'\n"
-                    f"Expected format: 'host_path:container_path' (e.g., './data:/workspace')"
+                    f"Expected format: 'host_path:sandbox_path' (e.g., './data:/workspace')"
                 )
         
         return validated_mappings
@@ -282,7 +282,7 @@ class WrapperConfig:
         # Check for common issues
         if 'Expecting value' in error_msg and value.count('"') == 0:
             suggestions.append("- Strings in JSON arrays must be quoted with double quotes")
-            suggestions.append("  Example: ['/path/to/host:/path/in/container'] should be [\"/path/to/host:/path/in/container\"]")
+            suggestions.append("  Example: ['/path/to/host:/path/in/sandbox'] should be [\"/path/to/host:/path/in/sandbox\"]")
         
         if 'Expecting \',' in error_msg:
             suggestions.append("- Check that the JSON array is properly closed with ']'")

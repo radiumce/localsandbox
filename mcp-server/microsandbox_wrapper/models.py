@@ -138,23 +138,23 @@ class ResourceStats:
 @dataclass
 class VolumeMapping:
     """
-    Represents a volume mapping between host and container paths.
+    Represents a volume mapping between host and sandbox paths.
     
     Used for sharing files and directories between the host system
-    and sandbox containers.
+    and sandbox environments.
     """
     host_path: str               # Path on the host system
-    container_path: str          # Path inside the container
+    sandbox_path: str            # Path inside the sandbox
     
     @classmethod
     def from_string(cls, mapping_str: str) -> 'VolumeMapping':
         """
         Parse a volume mapping from a string format.
         
-        Expected format: "host_path:container_path"
+        Expected format: "host_path:sandbox_path"
         
         Args:
-            mapping_str: String in the format "host_path:container_path"
+            mapping_str: String in the format "host_path:sandbox_path"
             
         Returns:
             VolumeMapping: Parsed volume mapping
@@ -164,19 +164,19 @@ class VolumeMapping:
         """
         parts = mapping_str.split(':', 1)
         if len(parts) != 2:
-            raise ValueError(f"Invalid volume mapping format: {mapping_str}. Expected 'host_path:container_path'")
+            raise ValueError(f"Invalid volume mapping format: {mapping_str}. Expected 'host_path:sandbox_path'")
         
-        host_path, container_path = parts
-        if not host_path.strip() or not container_path.strip():
+        host_path, sandbox_path = parts
+        if not host_path.strip() or not sandbox_path.strip():
             raise ValueError(f"Invalid volume mapping format: {mapping_str}. Both paths must be non-empty")
             
-        return cls(host_path=host_path.strip(), container_path=container_path.strip())
+        return cls(host_path=host_path.strip(), sandbox_path=sandbox_path.strip())
     
     def __str__(self) -> str:
         """
         Convert the volume mapping back to string format.
         
         Returns:
-            str: Volume mapping in "host_path:container_path" format
+            str: Volume mapping in "host_path:sandbox_path" format
         """
-        return f"{self.host_path}:{self.container_path}"
+        return f"{self.host_path}:{self.sandbox_path}"

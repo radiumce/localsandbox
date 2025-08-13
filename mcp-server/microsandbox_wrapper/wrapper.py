@@ -14,7 +14,10 @@ from .config import WrapperConfig
 from .exceptions import (
     ConfigurationError,
     ConnectionError,
+    SandboxStartError,
     MicrosandboxWrapperError,
+    PinnedSandboxNotFoundError,
+    SessionCreationError,
     handle_sdk_exception,
     log_error_with_context,
 )
@@ -444,6 +447,57 @@ class MicrosandboxWrapper:
             if isinstance(e, MicrosandboxWrapperError):
                 raise
             raise MicrosandboxWrapperError(f"Failed to stop session: {str(e)}")
+    
+    async def pin_session(self, session_id: str, pinned_name: str) -> str:
+        """
+        Pin a sandbox with a custom name for persistence beyond session cleanup.
+        
+        Args:
+            session_id: ID of the session to pin
+            pinned_name: Human-readable name for the pinned sandbox
+            
+        Returns:
+            str: Success message with pinned sandbox information
+            
+        Raises:
+            SessionNotFoundError: When session_id doesn't exist
+            SandboxNotFoundError: When session's sandbox cannot be located
+            RuntimeError: When container operations (rename, label update) fail
+        """
+        self._ensure_started()
+        
+        try:
+            return await self._session_manager.pin_session(session_id, pinned_name)
+        except Exception as e:
+            logger.error(f"Failed to pin session {session_id}: {e}", exc_info=True)
+            if isinstance(e, MicrosandboxWrapperError):
+                raise
+            raise MicrosandboxWrapperError(f"Failed to pin session: {str(e)}")
+    
+    async def attach_to_pinned_sandbox(self, pinned_name: str) -> str:
+        """
+        Attach to a previously pinned sandbox by name and return session ID.
+        
+        Args:
+            pinned_name: Name of the pinned sandbox to attach to
+            
+        Returns:
+            str: Session ID for successful attachment
+            
+        Raises:
+            PinnedSandboxNotFoundError: When pinned_name doesn't match any sandbox
+            SandboxStartError: When stopped sandbox cannot be started
+            SessionCreationError: When new session cannot be created
+        """
+        self._ensure_started()
+        
+        try:
+            return await self._session_manager.attach_to_pinned_sandbox(pinned_name)
+        except Exception as e:
+            logger.error(f"Failed to attach to pinned sandbox {pinned_name}: {e}", exc_info=True)
+            if isinstance(e, MicrosandboxWrapperError):
+                raise
+            raise MicrosandboxWrapperError(f"Failed to attach to pinned sandbox: {str(e)}")
     
     async def get_volume_mappings(self) -> List[VolumeMapping]:
         """

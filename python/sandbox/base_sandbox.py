@@ -227,6 +227,147 @@ class BaseSandbox(ABC):
         """
         return Command(self)
 
+    async def pin(self, pinned_name: str) -> None:
+        """
+        Pin the sandbox with a persistent name.
+        
+        This allows the sandbox to be reattached later using the pinned name,
+        even after the current session ends.
+        
+        Args:
+            pinned_name: The persistent name to assign to this sandbox
+            
+        Raises:
+            RuntimeError: If the sandbox is not started or pinning fails
+        """
+        if not self._is_started or not self._container_id:
+            raise RuntimeError("Cannot pin sandbox: sandbox is not started")
+        
+        try:
+            # Rename the container to the pinned name
+            await self._runtime.rename_container(self._name, pinned_name)
+            
+            # Update container labels to mark it as pinned
+            labels = {
+                "pinned": "true",
+                "pinned_name": pinned_name
+            }
+            await self._runtime.update_container_labels(pinned_name, labels)
+            
+            # Update internal name tracking
+            self._name = pinned_name
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to pin sandbox as '{pinned_name}': {e}")
+    
+    @classmethod
+    async def attach_to_pinned(
+        cls,
+        pinned_name: str,
+        container_runtime: Optional[str] = None,
+        namespace: str = "default",
+        **kwargs
+    ):
+        """
+        Attach to an existing pinned sandbox.
+        
+        Args:
+            pinned_name: The name of the pinned sandbox to attach to
+            container_runtime: Container runtime to use ('docker' or 'podman')
+            namespace: Namespace for the sandbox
+            **kwargs: Additional arguments for backward compatibility (ignored)
+            
+        Returns:
+            A sandbox instance attached to the existing pinned sandbox
+            
+        Raises:
+            RuntimeError: If the pinned sandbox cannot be found or attached
+        """
+        # Create sandbox instance
+        sandbox = cls(
+            container_runtime=container_runtime,
+            namespace=namespace,
+            name=pinned_name,
+            **kwargs
+        )
+        
+        try:
+            # Try to get container info by name first
+            container_info = await sandbox._runtime.get_container_info(pinned_name)
+        except Exception:
+            # If not found by name, try searching by label
+            try:
+                containers = await sandbox._runtime.get_containers_by_label({"pinned_name": pinned_name})
+                if not containers:
+                    raise RuntimeError(f"No pinned sandbox found with name '{pinned_name}'")
+                container_info = containers[0]
+            except Exception as e:
+                raise RuntimeError(f"Failed to find pinned sandbox '{pinned_name}': {e}")
+        
+        # Extract container ID and check if it's running
+        container_id = container_info['Id']
+        container_state = container_info.get('State', 'unknown')
+        
+        # Start container if it's stopped
+        if container_state != 'running':
+            try:
+                await sandbox._runtime.start_container(container_id)
+            except Exception as e:
+                raise RuntimeError(f"Failed to start pinned sandbox '{pinned_name}': {e}")
+        
+        # Update sandbox state
+        sandbox._container_id = container_id
+        sandbox._is_started = True
+        
+        return sandbox
+    
+    @classmethod
+    async def list_pinned(
+        cls,
+        container_runtime: Optional[str] = None,
+        namespace: Optional[str] = None
+    ) -> list:
+        """
+        List all pinned sandboxes.
+        
+        Args:
+            container_runtime: Container runtime to use ('docker' or 'podman')
+            namespace: Optional namespace filter
+            
+        Returns:
+            List of dictionaries containing pinned sandbox information
+        """
+        # Create a temporary runtime instance
+        config = get_config()
+        runtime_name = container_runtime or config.runtime_type
+        runtime_cmd = get_runtime_command(runtime_name)
+        runtime = DockerRuntime(runtime_cmd)
+        
+        try:
+            # Search for containers with pinned=true label
+            search_labels = {"pinned": "true"}
+            if namespace:
+                search_labels["localsandbox.namespace"] = namespace
+                
+            containers = await runtime.get_containers_by_label(search_labels)
+            
+            pinned_sandboxes = []
+            for container in containers:
+                labels = container.get('Labels', {})
+                pinned_sandboxes.append({
+                    'name': labels.get('pinned_name', 'unknown'),
+                    'container_id': container['Id'],
+                    'state': container.get('State', 'unknown'),
+                    'image': container.get('Image', 'unknown'),
+                    'namespace': labels.get('localsandbox.namespace', 'default'),
+                    'template': labels.get('template', 'unknown')
+                })
+            
+            return pinned_sandboxes
+            
+        except Exception as e:
+            raise RuntimeError(f"Failed to list pinned sandboxes: {e}")
+
     @property
     def metrics(self):
         """

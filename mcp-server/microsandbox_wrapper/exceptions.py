@@ -521,6 +521,235 @@ class ConnectionError(MicrosandboxWrapperError):
         )
 
 
+class ContainerNotFoundError(MicrosandboxWrapperError):
+    """
+    Raised when a container cannot be found.
+    
+    This can occur when:
+    - Container was removed externally
+    - Container ID/name is invalid
+    - Container runtime is not accessible
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        container_id: Optional[str] = None,
+        session_id: Optional[str] = None,
+        original_error: Optional[Exception] = None
+    ):
+        context = {}
+        if container_id:
+            context["container_id"] = container_id
+        if session_id:
+            context["session_id"] = session_id
+        
+        recovery_suggestions = [
+            "Verify the container ID or name is correct",
+            "Check if the container was removed externally",
+            "List available containers to see what exists",
+            "Create a new session if the container is no longer available"
+        ]
+        
+        super().__init__(
+            message=message,
+            category=ErrorCategory.RESOURCE,
+            severity=ErrorSeverity.MEDIUM,
+            recovery_suggestions=recovery_suggestions,
+            context=context,
+            original_error=original_error
+        )
+
+
+class PinnedSandboxNotFoundError(MicrosandboxWrapperError):
+    """
+    Raised when attempting to attach to a non-existent pinned sandbox.
+    
+    This occurs when:
+    - Pinned sandbox name doesn't match any container
+    - Pinned container was removed externally
+    - Container lost its pinned labels
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        pinned_name: Optional[str] = None,
+        original_error: Optional[Exception] = None
+    ):
+        context = {}
+        if pinned_name:
+            context["pinned_name"] = pinned_name
+        
+        recovery_suggestions = [
+            "Verify the pinned sandbox name is correct",
+            "List available pinned sandboxes to see what exists",
+            "Check if the pinned container was removed externally",
+            "Create a new sandbox and pin it with the desired name"
+        ]
+        
+        super().__init__(
+            message=message,
+            category=ErrorCategory.RESOURCE,
+            severity=ErrorSeverity.MEDIUM,
+            recovery_suggestions=recovery_suggestions,
+            context=context,
+            original_error=original_error
+        )
+
+
+class SandboxNotFoundError(MicrosandboxWrapperError):
+    """
+    Raised when a sandbox cannot be found.
+    
+    This can occur when:
+    - Sandbox was removed externally
+    - Sandbox ID/name is invalid
+    - Sandbox runtime is not accessible
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        sandbox_name: Optional[str] = None,
+        session_id: Optional[str] = None,
+        original_error: Optional[Exception] = None
+    ):
+        context = {}
+        if sandbox_name:
+            context["sandbox_name"] = sandbox_name
+        if session_id:
+            context["session_id"] = session_id
+        
+        recovery_suggestions = [
+            "Verify the sandbox name is correct",
+            "Check if the sandbox was removed externally",
+            "List available sandboxes to see what exists",
+            "Create a new session if the sandbox is no longer available"
+        ]
+        
+        super().__init__(
+            message=message,
+            category=ErrorCategory.RESOURCE,
+            severity=ErrorSeverity.HIGH,
+            recovery_suggestions=recovery_suggestions,
+            context=context,
+            original_error=original_error
+        )
+
+
+class SandboxStartError(MicrosandboxWrapperError):
+    """
+    Raised when a sandbox fails to start.
+    
+    This can occur when:
+    - Sandbox runtime is not available
+    - Sandbox configuration is invalid
+    - Resource constraints prevent startup
+    - Sandbox image is not available
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        sandbox_name: Optional[str] = None,
+        original_error: Optional[Exception] = None
+    ):
+        context = {}
+        if sandbox_name:
+            context["sandbox_name"] = sandbox_name
+        
+        recovery_suggestions = [
+            "Check if the sandbox runtime is running",
+            "Verify the sandbox image is available",
+            "Check system resources (memory, disk space)",
+            "Review sandbox configuration for errors"
+        ]
+        
+        super().__init__(
+            message=message,
+            category=ErrorCategory.RESOURCE,
+            severity=ErrorSeverity.HIGH,
+            recovery_suggestions=recovery_suggestions,
+            context=context,
+            original_error=original_error
+        )
+
+
+class ContainerStartError(MicrosandboxWrapperError):
+    """
+    Raised when a container fails to start.
+    
+    This can occur due to:
+    - Resource constraints
+    - Container configuration issues
+    - Container runtime problems
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        container_id: Optional[str] = None,
+        original_error: Optional[Exception] = None
+    ):
+        context = {}
+        if container_id:
+            context["container_id"] = container_id
+        
+        recovery_suggestions = [
+            "Check if sufficient resources are available",
+            "Verify container configuration is valid",
+            "Check container runtime logs for detailed error information",
+            "Try restarting the container runtime service"
+        ]
+        
+        super().__init__(
+            message=message,
+            category=ErrorCategory.RESOURCE,
+            severity=ErrorSeverity.HIGH,
+            recovery_suggestions=recovery_suggestions,
+            context=context,
+            original_error=original_error
+        )
+
+
+class SessionCreationError(MicrosandboxWrapperError):
+    """
+    Raised when session creation fails during attachment operations.
+    
+    This can occur when:
+    - Unable to generate session ID
+    - Session registration fails
+    - Resource allocation fails
+    """
+    
+    def __init__(
+        self,
+        message: str,
+        container_id: Optional[str] = None,
+        original_error: Optional[Exception] = None
+    ):
+        context = {}
+        if container_id:
+            context["container_id"] = container_id
+        
+        recovery_suggestions = [
+            "Check if the session manager is running properly",
+            "Verify sufficient resources are available for new sessions",
+            "Try again after a short delay",
+            "Check system logs for detailed error information"
+        ]
+        
+        super().__init__(
+            message=message,
+            category=ErrorCategory.SESSION,
+            severity=ErrorSeverity.HIGH,
+            recovery_suggestions=recovery_suggestions,
+            context=context,
+            original_error=original_error
+        )
+
+
 # Utility functions for error handling
 
 def create_sandbox_creation_error(

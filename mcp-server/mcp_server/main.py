@@ -115,6 +115,23 @@ def main():
     setup_logging(level=args.log_level)
     logger = get_logger(__name__)
     
+    # Initialize wrapper BEFORE starting MCP server
+    # This ensures wrapper is active throughout server lifecycle
+    if args.transport != "stdio":
+        logger.info("Initializing wrapper before MCP server startup")
+    
+    import asyncio
+    from mcp_server.server import get_or_create_wrapper
+    
+    # Create wrapper in the main thread
+    async def init_wrapper():
+        await get_or_create_wrapper()
+        if args.transport != "stdio":
+            logger.info("Wrapper initialization completed")
+    
+    # Run wrapper initialization
+    asyncio.run(init_wrapper())
+    
     # Setup cleanup handlers for graceful shutdown
     setup_cleanup_handlers()
 
@@ -161,10 +178,12 @@ def run_http_server(server_app, config):
     from starlette.routing import Mount
     from starlette.middleware.cors import CORSMiddleware
     
-    # Create a combined lifespan manager for the MCP server
+    # Create a lifespan manager that only manages FastMCP session manager
+    # Wrapper is managed at process level independently
     @contextlib.asynccontextmanager
     async def app_lifespan(app: Starlette):
         async with contextlib.AsyncExitStack() as stack:
+            # Start the FastMCP session manager
             await stack.enter_async_context(server_app.session_manager.run())
             yield
     
@@ -203,10 +222,12 @@ def run_sse_server(server_app, config):
     from starlette.routing import Mount
     from starlette.middleware.cors import CORSMiddleware
     
-    # Create a combined lifespan manager for the MCP server
+    # Create a lifespan manager that only manages FastMCP session manager
+    # Wrapper is managed at process level independently
     @contextlib.asynccontextmanager
     async def app_lifespan(app: Starlette):
         async with contextlib.AsyncExitStack() as stack:
+            # Start the FastMCP session manager
             await stack.enter_async_context(server_app.session_manager.run())
             yield
     

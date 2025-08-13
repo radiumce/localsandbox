@@ -18,7 +18,9 @@ from .config import WrapperConfig
 from .exceptions import (
     CodeExecutionError,
     CommandExecutionError,
+    SandboxNotFoundError,
     SandboxCreationError,
+    SessionNotFoundError,
     create_code_execution_error,
     create_sandbox_creation_error,
     handle_sdk_exception,
@@ -882,6 +884,214 @@ class SessionManager:
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
         logger.info("Cleanup task restarted")
         return True
+
+    async def pin_session(self, session_id: str, pinned_name: str) -> str:
+        """
+        Pin a sandbox with a custom name for persistence beyond session cleanup.
+        
+        This method:
+        1. Validates that the session exists and is active
+        2. Uses the session's sandbox to pin itself with the given name
+        3. Updates the session's sandbox_name to reflect the new pinned name
+        
+        Args:
+            session_id: ID of the session to pin
+            pinned_name: Human-readable name for the pinned sandbox
+            
+        Returns:
+            str: Success message with pinned sandbox information
+            
+        Raises:
+            SessionNotFoundError: When session_id doesn't exist
+            SandboxNotFoundError: When session's sandbox cannot be located
+            RuntimeError: When sandbox pin operation fails
+        """
+        # Validate session exists and is active
+        if session_id not in self._sessions:
+            raise SessionNotFoundError(
+                message=f"Session {session_id} not found",
+                session_id=session_id
+            )
+        
+        session = self._sessions[session_id]
+        
+        # Check if session is in a valid state for pinning
+        if session.status == SessionStatus.STOPPED:
+            raise SessionNotFoundError(
+                message=f"Cannot pin stopped session {session_id}",
+                session_id=session_id
+            )
+        
+        # Ensure the session's sandbox is started
+        try:
+            await session.ensure_started()
+        except Exception as e:
+            raise SandboxNotFoundError(
+                message=f"Failed to access sandbox for session {session_id}: {str(e)}",
+                session_id=session_id,
+                original_error=e
+            )
+        
+        # Get the current sandbox name
+        current_sandbox_name = session.sandbox_name
+        
+        logger.info(f"Pinning session {session_id} with name '{pinned_name}' (current name: {current_sandbox_name})")
+        
+        try:
+            # Use the sandbox's pin method
+            await session._sandbox.pin(pinned_name)
+            logger.debug(f"Pinned sandbox from {current_sandbox_name} to {pinned_name}")
+            
+            # Update session's sandbox_name to reflect the new pinned name
+            session.sandbox_name = pinned_name
+            logger.debug(f"Updated session {session_id} sandbox_name to {pinned_name}")
+            
+            success_message = f"Successfully pinned session {session_id} as '{pinned_name}'"
+            logger.info(success_message)
+            
+            return success_message
+            
+        except Exception as e:
+            # If any sandbox operation fails, log the error and re-raise
+            error_message = f"Failed to pin session {session_id} as '{pinned_name}': {str(e)}"
+            logger.error(error_message, exc_info=True)
+            
+            # Try to determine if this is a sandbox-specific error
+            if "not started" in str(e).lower() or "not found" in str(e).lower():
+                raise SandboxNotFoundError(
+                    message=f"Sandbox for session {session_id} not found: {str(e)}",
+                    sandbox_name=current_sandbox_name,
+                    session_id=session_id,
+                    original_error=e
+                )
+            else:
+                # Re-raise as RuntimeError to pass through sandbox engine errors
+                raise RuntimeError(error_message) from e
+
+    async def attach_to_pinned_sandbox(self, pinned_name: str) -> str:
+        """
+        Attach to a previously pinned sandbox by name and return session ID.
+        
+        This method:
+        1. Uses the sandbox SDK to attach to a pinned sandbox
+        2. Determines the template from the attached sandbox
+        3. Creates a new ManagedSession for the attached sandbox
+        4. Returns session ID to caller
+        
+        Args:
+            pinned_name: Name of the pinned sandbox to attach to
+            
+        Returns:
+            str: Session ID for the attached sandbox
+            
+        Raises:
+            PinnedSandboxNotFoundError: When pinned_name doesn't match any sandbox
+            SandboxStartError: When stopped sandbox cannot be started
+            SessionCreationError: When new session cannot be created for attachment
+        """
+        from .exceptions import PinnedSandboxNotFoundError, SandboxStartError, SessionCreationError
+        
+        logger.info(f"Attempting to attach to pinned sandbox '{pinned_name}'")
+        
+        try:
+            # Check if sandbox is already associated with an active session
+            for existing_session_id, existing_session in self._sessions.items():
+                if existing_session.sandbox_name == pinned_name and not existing_session.is_expired(self._config.session_timeout):
+                    logger.info(f"Sandbox '{pinned_name}' already has active session {existing_session_id}")
+                    existing_session.touch()  # Update last accessed time
+                    return existing_session_id
+            
+            # Try to determine template from pinned sandbox
+            # First try Python sandbox
+            template = "python"
+            sandbox = None
+            
+            try:
+                from sandbox import PythonSandbox
+                sandbox = await PythonSandbox.attach_to_pinned(
+                    pinned_name=pinned_name,
+                    container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
+                    namespace="default"
+                )
+                template = "python"
+                logger.debug(f"Successfully attached to pinned sandbox '{pinned_name}' as Python sandbox")
+            except Exception as python_error:
+                logger.debug(f"Failed to attach as Python sandbox: {python_error}")
+                
+                # Try Node sandbox
+                try:
+                    from sandbox import NodeSandbox
+                    sandbox = await NodeSandbox.attach_to_pinned(
+                        pinned_name=pinned_name,
+                        container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
+                        namespace="default"
+                    )
+                    template = "node"
+                    logger.debug(f"Successfully attached to pinned sandbox '{pinned_name}' as Node sandbox")
+                except Exception as node_error:
+                    logger.debug(f"Failed to attach as Node sandbox: {node_error}")
+                    
+                    # If both fail, raise PinnedSandboxNotFoundError
+                    raise PinnedSandboxNotFoundError(
+                        message=f"No pinned sandbox found with name '{pinned_name}'. Python error: {python_error}. Node error: {node_error}",
+                        pinned_name=pinned_name
+                    )
+            
+            if not sandbox:
+                raise PinnedSandboxNotFoundError(
+                    message=f"No pinned sandbox found with name '{pinned_name}'",
+                    pinned_name=pinned_name
+                )
+            
+            # Generate new session ID
+            new_session_id = str(uuid.uuid4())
+            logger.debug(f"Generated new session ID: {new_session_id}")
+            
+            # Create new ManagedSession for the attached sandbox
+            try:
+                session = ManagedSession(
+                    session_id=new_session_id,
+                    template=template,
+                    flavor=SandboxFlavor.SMALL,  # Default flavor
+                    config=self._config
+                )
+                
+                # Set the sandbox instance and update session state
+                session._sandbox = sandbox
+                session.sandbox_name = pinned_name
+                session.status = SessionStatus.READY
+                
+                # Register the session
+                self._sessions[new_session_id] = session
+                
+                logger.info(f"Successfully created session {new_session_id} for pinned sandbox '{pinned_name}'")
+                
+                return new_session_id
+                
+            except Exception as e:
+                # Clean up the sandbox if session creation fails
+                try:
+                    await sandbox.stop()
+                except:
+                    pass
+                
+                raise SessionCreationError(
+                    message=f"Failed to create session for pinned sandbox '{pinned_name}': {str(e)}",
+                    sandbox_name=pinned_name,
+                    original_error=e
+                )
+                
+        except (PinnedSandboxNotFoundError, SandboxStartError, SessionCreationError):
+            # Re-raise our custom exceptions as-is
+            raise
+        except Exception as e:
+            # Handle any unexpected errors
+            error_message = f"Unexpected error while attaching to pinned sandbox '{pinned_name}': {str(e)}"
+            logger.error(error_message, exc_info=True)
+            raise SessionCreationError(
+                message=error_message,
+                original_error=e
+            )
     
     async def _cleanup_loop(self) -> None:
         """
