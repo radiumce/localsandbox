@@ -903,6 +903,56 @@ class MicrosandboxWrapper:
                 'errors': [str(e)]
             }
     
+    def emergency_shutdown_sync(self) -> dict:
+        """
+        Perform emergency synchronous shutdown for signal handlers.
+        
+        This method provides a synchronous interface to the shutdown process
+        that can be safely called from signal handlers without using asyncio.
+        It delegates to the existing graceful shutdown logic but runs it
+        in a new event loop.
+        
+        Returns:
+            dict: Shutdown status information
+        """
+        if not self._started:
+            return {
+                'status': 'not_started',
+                'message': 'Wrapper was not started',
+                'timestamp': time.time()
+            }
+        
+        logger.info("Starting emergency synchronous shutdown")
+        
+        try:
+            # Check if there's already a running event loop
+            try:
+                asyncio.get_running_loop()
+                # If we get here, there's a running loop - we can't use asyncio.run()
+                # In this case, we'll do a best-effort cleanup by marking as stopped
+                # and letting the existing cleanup mechanisms handle the rest
+                logger.warning("Event loop detected during emergency shutdown - doing minimal cleanup")
+                self._started = False
+                return {
+                    'status': 'partial_success',
+                    'message': 'Emergency shutdown with running event loop - minimal cleanup performed',
+                    'timestamp': time.time()
+                }
+            except RuntimeError:
+                # No running loop, safe to use asyncio.run()
+                logger.info("No event loop detected, running full emergency shutdown")
+                return asyncio.run(self.graceful_shutdown(timeout_seconds=10.0))
+                
+        except Exception as e:
+            logger.error(f"Error during emergency shutdown: {e}", exc_info=True)
+            # Mark as stopped even if there were errors
+            self._started = False
+            return {
+                'status': 'failed',
+                'message': f'Emergency shutdown failed: {str(e)}',
+                'timestamp': time.time()
+            }
+
     async def graceful_shutdown(self, timeout_seconds: float = 30.0) -> dict:
         """
         Perform a graceful shutdown with timeout control.

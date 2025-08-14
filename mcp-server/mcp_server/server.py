@@ -47,6 +47,7 @@ _global_wrapper: Optional[MicrosandboxWrapper] = None
 _wrapper_lock = asyncio.Lock()
 _wrapper_initialized = False
 _shutdown_registered = False
+_shutdown_in_progress = False
 
 
 async def get_or_create_wrapper() -> MicrosandboxWrapper:
@@ -68,14 +69,21 @@ async def get_or_create_wrapper() -> MicrosandboxWrapper:
                 
                 def sync_shutdown():
                     """Synchronous wrapper for shutdown_wrapper."""
+                    global _shutdown_in_progress
+                    if _shutdown_in_progress:
+                        return  # Avoid duplicate shutdown - signal handler already handled it
+                    
                     if _global_wrapper is not None and _global_wrapper.is_started():
+                        _shutdown_in_progress = True
                         logger.info("Process exit detected - shutting down MicrosandboxWrapper")
-                        # Use asyncio.run to properly shutdown the wrapper
                         try:
-                            import asyncio
-                            asyncio.run(_force_shutdown_wrapper())
+                            # Use wrapper's emergency shutdown method
+                            logger.info("Process exit detected, using wrapper emergency shutdown")
+                            shutdown_result = _global_wrapper.emergency_shutdown_sync()
+                            logger.info(f"Emergency shutdown completed with status: {shutdown_result['status']}")
                         except Exception as e:
-                            logger.error(f"Error during process exit wrapper shutdown: {e}")
+                            # Suppress errors during process exit to avoid noise
+                            logger.debug(f"Error during process exit wrapper shutdown: {e}")
                 
                 # Register only atexit handler - signals handled by main.py
                 atexit.register(sync_shutdown)
@@ -100,6 +108,9 @@ async def _force_shutdown_wrapper() -> None:
             _global_wrapper = None
 
 
+
+
+
 async def shutdown_wrapper() -> None:
     """Shutdown the global wrapper instance - no-op for process-level management."""
     # For process-level management, we don't shutdown on FastMCP lifespan events
@@ -110,38 +121,25 @@ async def shutdown_wrapper() -> None:
 
 def shutdown_wrapper_sync() -> None:
     """Synchronously shutdown the global wrapper instance - for signal handlers."""
-    global _global_wrapper
+    global _global_wrapper, _shutdown_in_progress
     
-    if _global_wrapper is not None and _global_wrapper.is_started():
-        logger.info("Signal handler: shutting down MicrosandboxWrapper")
-        try:
-            # Use asyncio.run to properly shutdown the wrapper in a new event loop
-            # This avoids conflicts with any existing event loop
-            import asyncio
-            loop = None
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                # No running loop, safe to use asyncio.run
-                asyncio.run(_force_shutdown_wrapper())
-                return
+    if _shutdown_in_progress:
+        return  # Avoid duplicate shutdown
+    
+    _shutdown_in_progress = True
+    logger.info("Signal handler: shutting down MicrosandboxWrapper")
+    
+    try:
+        # Use wrapper's emergency shutdown method which respects existing cleanup logic
+        if _global_wrapper is not None:
+            shutdown_result = _global_wrapper.emergency_shutdown_sync()
+            logger.info(f"Signal handler: emergency shutdown completed with status: {shutdown_result['status']}")
+            _global_wrapper = None
+        else:
+            logger.debug("Signal handler: wrapper not initialized, nothing to shutdown")
             
-            # If there's a running loop, we need to be more careful
-            # Create a new thread to run the shutdown
-            import threading
-            import concurrent.futures
-            
-            def shutdown_in_thread():
-                asyncio.run(_force_shutdown_wrapper())
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(shutdown_in_thread)
-                future.result(timeout=5.0)  # Wait up to 5 seconds for shutdown
-                
-        except Exception as e:
-            logger.error(f"Error during signal handler wrapper shutdown: {e}")
-    else:
-        logger.debug("Signal handler: wrapper not started, nothing to shutdown")
+    except Exception as e:
+        logger.error(f"Error during signal handler wrapper shutdown: {e}")
 
 
 # Create MCP server with lifespan management for wrapper initialization
