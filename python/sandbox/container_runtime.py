@@ -672,9 +672,9 @@ class DockerRuntime(ContainerRuntime):
                 if create_result["returncode"] != 0:
                     raise RuntimeError(f"Failed to recreate container with labels: {create_result['stderr']}")
                 
-                # Start if it was running before
-                if was_running:
-                    await self.start_container(container_name)
+                # For pinned containers, always start them after recreation
+                # This ensures the container is available for continued use with the same session
+                await self.start_container(container_name)
                     
             finally:
                 # Clean up temporary image
