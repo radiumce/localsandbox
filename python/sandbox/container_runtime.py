@@ -611,8 +611,18 @@ class DockerRuntime(ContainerRuntime):
                 if was_running:
                     await self.stop_container(container_id)
                 
-                # Remove the old container
-                await self.remove_container(container_id)
+                # Remove the old container (with retry logic for race conditions)
+                try:
+                    await self.remove_container(container_id)
+                except RuntimeError as e:
+                    if "removal of container" in str(e) and "is already in progress" in str(e):
+                        # Container removal is already in progress, wait a bit and continue
+                        await asyncio.sleep(1)
+                    elif "No such container" in str(e):
+                        # Container already removed, that's fine
+                        pass
+                    else:
+                        raise
                 
                 # Get original configuration for basic settings
                 config = container_info.get("Config", {})
@@ -759,3 +769,30 @@ class DockerRuntime(ContainerRuntime):
             # If container doesn't exist, that's fine for cleanup operations
             if "No such container" not in str(e):
                 raise
+
+    async def is_container_pinned(self, container_id: str) -> bool:
+        """
+        Check if a container is pinned (has pinned=true label).
+        
+        Args:
+            container_id: Container ID to check
+            
+        Returns:
+            bool: True if container is pinned, False otherwise
+        """
+        try:
+            inspect_result = await self._run_command(["inspect", container_id], timeout=10)
+            
+            if inspect_result["returncode"] == 0:
+                try:
+                    container_info = json.loads(inspect_result["stdout"])[0]
+                    labels = container_info.get("Config", {}).get("Labels") or {}
+                    return labels.get("pinned", "").lower() == "true"
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    # If we can't parse labels, assume not pinned
+                    return False
+            
+            return False
+        except Exception:
+            # If any error occurs, assume not pinned
+            return False

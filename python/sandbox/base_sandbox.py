@@ -195,9 +195,14 @@ class BaseSandbox(ABC):
 
         try:
             await self._runtime.stop_container(self._container_id)
-            await self._runtime.remove_container(self._container_id)
+            
+            # Check if this is a pinned container - if so, don't remove it
+            is_pinned = await self._runtime.is_container_pinned(self._container_id)
+            if not is_pinned:
+                await self._runtime.remove_container(self._container_id)
+                self._container_id = None
+            
             self._is_started = False
-            self._container_id = None
         except Exception as e:
             raise RuntimeError(f"Failed to stop sandbox: {e}")
 
