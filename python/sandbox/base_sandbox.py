@@ -260,7 +260,8 @@ class BaseSandbox(ABC):
             # Use the original container ID to avoid confusion during the update process
             labels = {
                 "pinned": "true",
-                "pinned_name": pinned_name
+                "pinned_name": pinned_name,
+                "localsandbox.name": pinned_name  # Update the localsandbox.name to match pinned name
             }
             await self._runtime.update_container_labels(original_container_id, labels)
             
