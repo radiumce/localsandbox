@@ -1036,11 +1036,32 @@ class SessionManager:
         
         try:
             # Check if sandbox is already associated with an active session
-            for existing_session_id, existing_session in self._sessions.items():
-                if existing_session.sandbox_name == pinned_name and not existing_session.is_expired(self._config.session_timeout):
-                    logger.info(f"Sandbox '{pinned_name}' already has active session {existing_session_id}")
-                    existing_session.touch()  # Update last accessed time
-                    return existing_session_id
+            existing_session = None
+            existing_session_id = None
+            for session_id, session in self._sessions.items():
+                if session.sandbox_name == pinned_name and not session.is_expired(self._config.session_timeout):
+                    existing_session = session
+                    existing_session_id = session_id
+                    break
+            
+            if existing_session:
+                # Check if the container is actually running
+                try:
+                    container_running = await existing_session._sandbox._runtime.is_container_running(existing_session._sandbox._container_id)
+                    if container_running:
+                        logger.info(f"Sandbox '{pinned_name}' already has active session {existing_session_id}")
+                        existing_session.touch()  # Update last accessed time
+                        return existing_session_id
+                    else:
+                        # Container is stopped, need to restart it
+                        logger.info(f"Sandbox '{pinned_name}' has session but container is stopped, restarting...")
+                        await existing_session._sandbox._runtime.start_container(existing_session._sandbox._container_id)
+                        logger.info(f"Restarted container for session {existing_session_id}")
+                        existing_session.touch()  # Update last accessed time
+                        return existing_session_id
+                except Exception as e:
+                    logger.warning(f"Failed to check/restart container for existing session: {e}")
+                    # Continue to create new session below
             
             # Try to determine template from pinned sandbox
             # First try Python sandbox

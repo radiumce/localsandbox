@@ -322,10 +322,11 @@ class BaseSandbox(ABC):
         
         # Extract container ID and check if it's running
         container_id = container_info['Id']
-        container_state = container_info.get('State', 'unknown')
+        container_state = container_info.get('State', {})
+        is_running = container_state.get('Running', False)
         
         # Start container if it's stopped
-        if container_state != 'running':
+        if not is_running:
             try:
                 await sandbox._runtime.start_container(container_id)
             except Exception as e:
