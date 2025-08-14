@@ -244,18 +244,34 @@ class BaseSandbox(ABC):
             raise RuntimeError("Cannot pin sandbox: sandbox is not started")
         
         try:
-            # Rename the container to the pinned name
-            await self._runtime.rename_container(self._name, pinned_name)
+            # Store original container ID and name for reference
+            original_container_id = self._container_id
+            original_name = self._name
+            
+            # First, rename the container to the pinned name
+            await self._runtime.rename_container(original_name, pinned_name)
             
             # Update container labels to mark it as pinned
+            # Use the original container ID to avoid confusion during the update process
             labels = {
                 "pinned": "true",
                 "pinned_name": pinned_name
             }
-            await self._runtime.update_container_labels(pinned_name, labels)
+            await self._runtime.update_container_labels(original_container_id, labels)
             
             # Update internal name tracking
             self._name = pinned_name
+            
+            # After label update, get the new container info to update our references
+            try:
+                container_info = await self._runtime.get_container_info(pinned_name)
+                if container_info and 'Id' in container_info:
+                    # Update container ID as it may have changed during label update
+                    self._container_id = container_info['Id']
+                else:
+                    raise RuntimeError("Failed to get container info after pin operation")
+            except Exception as verify_error:
+                raise RuntimeError(f"Failed to verify container after pin operation: {verify_error}")
             
         except Exception as e:
             raise RuntimeError(f"Failed to pin sandbox as '{pinned_name}': {e}")

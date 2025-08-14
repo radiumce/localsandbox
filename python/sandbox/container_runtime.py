@@ -572,11 +572,10 @@ class DockerRuntime(ContainerRuntime):
 
     async def update_container_labels(self, container_id: str, labels: Dict[str, str]) -> None:
         """
-        Update container labels by creating a new container with updated labels.
+        Update container labels by recreating the container with updated labels.
         
-        Note: Docker doesn't support updating labels on existing containers,
-        so this method uses docker commit and docker run to create a new container
-        with the updated labels, then removes the old one.
+        Since Docker doesn't support updating labels on existing containers,
+        we commit the current state and recreate with new labels.
         
         Args:
             container_id: ID or name of the container to update labels for
@@ -585,99 +584,95 @@ class DockerRuntime(ContainerRuntime):
         Raises:
             RuntimeError: If label update fails
         """
-        # Get current container configuration
+        # Get current container info
         inspect_result = await self._run_command(["inspect", container_id], timeout=10)
         if inspect_result["returncode"] != 0:
             raise RuntimeError(f"Failed to inspect container {container_id}: {inspect_result['stderr']}")
         
         try:
             container_info = json.loads(inspect_result["stdout"])[0]
-            current_labels = container_info.get("Config", {}).get("Labels") or {}
-            
-            # Merge new labels with existing ones
-            updated_labels = {**current_labels, **labels}
-            
-            # Create label arguments for docker run
-            label_args = []
-            for key, value in updated_labels.items():
-                label_args.extend(["--label", f"{key}={value}"])
-            
-            # Get container name for the new container
             container_name = container_info.get("Name", "").lstrip("/")
             if not container_name:
                 raise RuntimeError(f"Could not determine name for container {container_id}")
             
-            # Stop the container if it's running
+            # Check if container is running
             was_running = await self.is_container_running(container_id)
-            if was_running:
-                await self.stop_container(container_id)
             
-            # Commit the container to create an image
-            temp_image = f"{container_name}_temp_image"
+            # Create a temporary image with the current container state
+            temp_image = f"temp_pin_{container_name}_{hash(str(labels)) % 10000}"
+            
+            # Simple commit without changes first
             commit_result = await self._run_command(["commit", container_id, temp_image], timeout=30)
             if commit_result["returncode"] != 0:
-                raise RuntimeError(f"Failed to commit container {container_id}: {commit_result['stderr']}")
+                raise RuntimeError(f"Failed to commit container: {commit_result['stderr']}")
             
             try:
-                # Get original container configuration for recreation
+                # Stop the container if running
+                if was_running:
+                    await self.stop_container(container_id)
+                
+                # Remove the old container
+                await self.remove_container(container_id)
+                
+                # Get original configuration for basic settings
                 config = container_info.get("Config", {})
                 host_config = container_info.get("HostConfig", {})
                 
-                # Build run command with updated labels
-                run_args = ["run", "-d"]
-                run_args.extend(label_args)
-                run_args.extend(["--name", f"{container_name}_new"])
+                # Build run command with simplified configuration
+                run_args = ["run", "-d", "--name", container_name]
                 
-                # Add memory limit if present
+                # Add labels (both existing and new)
+                current_labels = config.get("Labels") or {}
+                updated_labels = {**current_labels, **labels}
+                for key, value in updated_labels.items():
+                    run_args.extend(["--label", f"{key}={value}"])
+                
+                # Add basic resource limits only
                 if host_config.get("Memory"):
                     memory_mb = host_config["Memory"] // (1024 * 1024)
                     run_args.extend(["--memory", f"{memory_mb}m"])
                 
-                # Add CPU limit if present  
                 if host_config.get("NanoCpus"):
                     cpus = host_config["NanoCpus"] / 1000000000
                     run_args.extend(["--cpus", str(cpus)])
                 
-                # Add volumes
+                # Add volume mounts from original container
                 mounts = container_info.get("Mounts", [])
                 for mount in mounts:
                     if mount.get("Type") == "bind":
                         source = mount.get("Source")
                         destination = mount.get("Destination")
                         if source and destination:
-                            run_args.extend(["-v", f"{source}:{destination}"])
+                            # Verify source directory exists before adding mount
+                            import os
+                            if os.path.exists(source):
+                                run_args.extend(["-v", f"{source}:{destination}"])
                 
-                # Add environment variables
+                # Only add basic environment variables (skip PATH and complex ones)
                 env_vars = config.get("Env", [])
                 for env_var in env_vars:
-                    if "=" in env_var:
+                    if "=" in env_var and not any(env_var.startswith(skip) for skip in ["PATH=", "HOSTNAME=", "HOME="]):
                         run_args.extend(["-e", env_var])
                 
-                # Add working directory
+                # Add working directory if it exists
                 working_dir = config.get("WorkingDir")
                 if working_dir:
                     run_args.extend(["-w", working_dir])
                 
-                # Add the image
+                # Add the committed image
                 run_args.append(temp_image)
                 
-                # Add command if present
+                # Add original command if it exists
                 cmd = config.get("Cmd")
                 if cmd:
                     run_args.extend(cmd)
                 
-                # Create new container with updated labels
+                # Create the new container
                 create_result = await self._run_command(run_args, timeout=30)
                 if create_result["returncode"] != 0:
-                    raise RuntimeError(f"Failed to create container with updated labels: {create_result['stderr']}")
+                    raise RuntimeError(f"Failed to recreate container with labels: {create_result['stderr']}")
                 
-                # Remove old container
-                await self.remove_container(container_id)
-                
-                # Rename new container to original name
-                await self.rename_container(f"{container_name}_new", container_name)
-                
-                # Start the new container if the original was running
+                # Start if it was running before
                 if was_running:
                     await self.start_container(container_name)
                     
