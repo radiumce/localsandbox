@@ -744,24 +744,12 @@ class DockerRuntime(ContainerRuntime):
         but do not remove it to preserve the pinned sandbox.
         """
         try:
-            # Check if container is pinned by inspecting its labels
-            inspect_result = await self._run_command(["inspect", container_id], timeout=10)
-            is_pinned = False
-            
-            if inspect_result["returncode"] == 0:
-                try:
-                    container_info = json.loads(inspect_result["stdout"])[0]
-                    labels = container_info.get("Config", {}).get("Labels") or {}
-                    is_pinned = labels.get("pinned", "").lower() == "true"
-                except (json.JSONDecodeError, KeyError, IndexError):
-                    # If we can't parse labels, assume not pinned
-                    is_pinned = False
-            
             # Stop the container if it's running
             if await self.is_container_running(container_id):
                 await self.stop_container(container_id)
             
             # Only remove if not pinned
+            is_pinned = await self.is_container_pinned(container_id)
             if not is_pinned:
                 await self.remove_container(container_id)
                 
