@@ -7,7 +7,7 @@ name = "localsandbox-mcp-server"
 version = "1.0.0"
 description = "LocalSandbox MCP Server - A Model Context Protocol server for code execution"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [
     {name = "LocalSandbox Team", email = "support@localsandbox.io"}
@@ -121,3 +121,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s - %(levelname)s - %(message)s"
