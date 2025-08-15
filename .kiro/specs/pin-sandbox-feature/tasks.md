@@ -7,7 +7,7 @@
   - Modify `stop_and_remove()` method to check for pinned status and only stop pinned containers
   - _Requirements: 1.1, 1.2, 1.5, 2.1, 2.2, 2.3, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3, 4.4, 5.1, 5.2, 5.3_
 
-- [x] 2. Implement pin_sandbox functionality in SessionManager in mcp-server/microsandbox_wrapper/session_manager.py
+- [x] 2. Implement pin_sandbox functionality in SessionManager in mcp-server/wrapper/session_manager.py
   - Add `pin_session()` method to handle sandbox pinning logic
   - Validate session exists and is active
   - Get container information from the managed session
@@ -16,7 +16,7 @@
   - Update session's sandbox_name to reflect the new pinned name
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 5.1, 5.2, 6.1, 6.2_
 
-- [x] 3. Implement attach_sandbox_by_name functionality in SessionManager in mcp-server/microsandbox_wrapper/session_manager.py
+- [x] 3. Implement attach_sandbox_by_name functionality in SessionManager in mcp-server/wrapper/session_manager.py
   - Add `attach_to_pinned_sandbox()` method to handle sandbox attachment
   - Search for containers by pinned_name (check container name first, then use label-based search)
   - Check container status (running/stopped)

@@ -139,7 +139,7 @@ export MSB_SESSION_TIMEOUT=1800
 ### Basic Usage
 
 ```python
-from microsandbox_wrapper import MicrosandboxWrapper
+from wrapper import MicrosandboxWrapper
 
 async def main():
     wrapper = MicrosandboxWrapper()

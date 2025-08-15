@@ -12,7 +12,7 @@ import os
 import signal
 import sys
 
-from microsandbox_wrapper import setup_logging, get_logger, ConfigurationError
+from wrapper import setup_logging, get_logger, ConfigurationError
 from mcp_server.server import create_server_app, shutdown_wrapper
 
 

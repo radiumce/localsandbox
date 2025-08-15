@@ -53,7 +53,7 @@ MSB_MAX_TOTAL_MEMORY_MB=8192
 ### Programmatic Configuration
 
 ```python
-from microsandbox_wrapper.config import WrapperConfig
+from wrapper.config import WrapperConfig
 
 config = WrapperConfig(
     max_concurrent_sessions=5,
@@ -68,8 +68,8 @@ config = WrapperConfig(
 
 ```python
 import asyncio
-from microsandbox_wrapper import MicrosandboxWrapper
-from microsandbox_wrapper.models import SandboxFlavor
+from wrapper import MicrosandboxWrapper
+from wrapper.models import SandboxFlavor
 
 async def example():
     async with MicrosandboxWrapper() as wrapper:

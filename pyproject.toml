@@ -3,16 +3,16 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "microsandbox-mcp-server"
+name = "localsandbox-mcp-server"
 version = "1.0.0"
-description = "Microsandbox MCP Server - A Model Context Protocol server for code execution"
+description = "LocalSandbox MCP Server - A Model Context Protocol server for code execution"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Microsandbox Team", email = "support@microsandbox.io"}
+    {name = "LocalSandbox Team", email = "support@localsandbox.io"}
 ]
-keywords = ["mcp", "model-context-protocol", "microsandbox", "sandbox", "http-server", "code-execution", "docker"]
+keywords = ["mcp", "model-context-protocol", "localsandbox", "sandbox", "http-server", "code-execution", "docker"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -49,10 +49,10 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/microsandbox/microsandbox"
-Repository = "https://github.com/microsandbox/microsandbox"
-Documentation = "https://github.com/microsandbox/microsandbox/tree/main/docs"
-"Bug Reports" = "https://github.com/microsandbox/microsandbox/issues"
+Homepage = "https://github.com/localsandbox/localsandbox"
+Repository = "https://github.com/localsandbox/localsandbox"
+Documentation = "https://github.com/localsandbox/localsandbox/tree/main/docs"
+"Bug Reports" = "https://github.com/localsandbox/localsandbox/issues"
 
 [project.scripts]
 microsandbox-mcp-server = "mcp_server.main:main"
@@ -65,16 +65,16 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["mcp-server", "python"]
-include = ["mcp_server*", "microsandbox_wrapper*", "sandbox*"]
+include = ["mcp_server*", "wrapper*", "sandbox*"]
 
 [tool.setuptools.package-dir]
 mcp_server = "mcp-server/mcp_server"
-microsandbox_wrapper = "mcp-server/microsandbox_wrapper"
+wrapper = "mcp-server/wrapper"
 sandbox = "python/sandbox"
 
 [tool.setuptools.package-data]
 mcp_server = ["*.md", "*.txt", "*.yml", "*.yaml"]
-microsandbox_wrapper = ["*.md", "*.txt", "*.yml", "*.yaml"]
+wrapper = ["*.md", "*.txt", "*.yml", "*.yaml"]
 
 [tool.black]
 line-length = 88

@@ -20,7 +20,7 @@
 **问题**: `MSB_SESSION_TIMEOUT` 默认应该是 3600s
 **解决方案**:
 - 修改默认值从 1800s → 3600s (60分钟)
-- 更新了 mcp-server/microsandbox_wrapper/config.py
+- 更新了 mcp-server/wrapper/config.py
 
 ### ✅ 问题4: 清理已弃用配置
 **问题**: 已弃用的配置应该清理掉

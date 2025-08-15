@@ -167,7 +167,7 @@ Raised when network connectivity issues occur.
 The system provides helper functions for creating standardized errors:
 
 ```python
-from microsandbox_wrapper.exceptions import (
+from wrapper.exceptions import (
     create_sandbox_creation_error,
     create_code_execution_error,
     create_resource_limit_error,
@@ -195,7 +195,7 @@ error = create_code_execution_error(
 The `handle_sdk_exception` function converts low-level SDK exceptions to appropriate wrapper exceptions:
 
 ```python
-from microsandbox_wrapper.exceptions import handle_sdk_exception
+from wrapper.exceptions import handle_sdk_exception
 
 try:
     # Some SDK operation
@@ -216,7 +216,7 @@ except Exception as e:
 The `log_error_with_context` function provides enhanced logging with full context:
 
 ```python
-from microsandbox_wrapper.exceptions import log_error_with_context
+from wrapper.exceptions import log_error_with_context
 import logging
 
 logger = logging.getLogger(__name__)

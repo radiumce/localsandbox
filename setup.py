@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for Microsandbox MCP Server
+Setup script for LocalSandbox MCP Server
 
 This setup script allows the entire project to be installed as a Python package
 with all dependencies and command-line tools.
@@ -15,7 +15,7 @@ def read_readme():
     if os.path.exists(readme_path):
         with open(readme_path, 'r', encoding='utf-8') as f:
             return f.read()
-    return "Microsandbox MCP Server - A Model Context Protocol server for code execution in sandboxed environments"
+    return "LocalSandbox MCP Server - A Model Context Protocol server for code execution in sandboxed environments"
 
 # Read requirements from mcp-server/requirements.txt
 def read_requirements():
@@ -36,24 +36,24 @@ def read_requirements():
     return requirements
 
 setup(
-    name="microsandbox-mcp-server",
+    name="localsandbox-mcp-server",
     version="1.0.0",
-    description="Microsandbox MCP Server - A Model Context Protocol server for code execution",
+    description="LocalSandbox MCP Server - A Model Context Protocol server for code execution",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    author="Microsandbox Team",
-    author_email="support@microsandbox.io",
-    url="https://github.com/microsandbox/microsandbox",
+    author="Eric Zane",
+    author_email="radiumce@gmail.com",
+    url="https://github.com/radiumce/localsandbox",
     
     # Package configuration - include both mcp-server and python packages
     packages=[
         'mcp_server',
-        'microsandbox_wrapper', 
+        'wrapper', 
         'sandbox'
     ],
     package_dir={
         'mcp_server': 'mcp-server/mcp_server',
-        'microsandbox_wrapper': 'mcp-server/microsandbox_wrapper',
+        'wrapper': 'mcp-server/wrapper',
         'sandbox': 'python/sandbox',
     },
     include_package_data=True,
@@ -65,7 +65,7 @@ setup(
     # Entry points for command-line usage
     entry_points={
         'console_scripts': [
-            'microsandbox-mcp-server=mcp_server.main:main',
+            'localsandbox-mcp-server=mcp_server.main:main',
             'mcp-server=mcp_server.main:main',
             'start-localsandbox=mcp_server.scripts:start_docker_server',
         ],
@@ -92,14 +92,9 @@ setup(
     ],
     
     # Keywords for PyPI
-    keywords="mcp model-context-protocol microsandbox sandbox http-server code-execution docker",
+    keywords="mcp model-context-protocol localsandbox sandbox http-server code-execution docker AI Agent",
     
-    # Project URLs
-    project_urls={
-        "Bug Reports": "https://github.com/microsandbox/microsandbox/issues",
-        "Source": "https://github.com/microsandbox/microsandbox",
-        "Documentation": "https://github.com/microsandbox/microsandbox/tree/main/docs",
-    },
+
     
     # Additional package data
     package_data={
@@ -111,7 +106,7 @@ setup(
             '*.sh',
             '.env.*',
         ],
-        'microsandbox_wrapper': [
+        'wrapper': [
             '*.md',
             '*.txt',
             '*.yml',

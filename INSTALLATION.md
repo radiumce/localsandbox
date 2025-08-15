@@ -112,7 +112,7 @@ start-localsandbox --help
 
 # 测试模块导入
 python -c "import mcp_server; print('OK')"
-python -c "import microsandbox_wrapper; print('OK')"
+python -c "import wrapper; print('OK')"
 ```
 
 ## 兼容性
@@ -199,7 +199,7 @@ microsandbox-mcp-server/
 │   ├── main.py          # 主入口点
 │   ├── server.py        # 服务器实现
 │   └── scripts.py       # 启动脚本
-├── microsandbox_wrapper/ # 沙盒包装器
+├── wrapper/ # 沙盒包装器
 └── sandbox/             # 沙盒 SDK
 ```
 

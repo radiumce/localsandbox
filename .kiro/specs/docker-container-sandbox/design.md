@@ -9,7 +9,7 @@
 ### 高层架构
 
 ```
-MCP Server (microsandbox_wrapper)
+MCP Server (wrapper)
     ↓ (导入使用)
 Python Sandbox SDK (python/sandbox)
     ↓ (新的实现)

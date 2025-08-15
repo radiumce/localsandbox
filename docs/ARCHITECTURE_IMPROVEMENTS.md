@@ -22,7 +22,7 @@ The original implementation violated the design principle that the wrapper layer
 
 ### 2. Updated Wrapper Layer to Use Sandbox SDK
 
-**Modified `mcp-server/microsandbox_wrapper/session_manager.py`:**
+**Modified `mcp-server/wrapper/session_manager.py`:**
 - `pin_session()` now uses `session._sandbox.pin(pinned_name)` instead of direct DockerRuntime calls
 - `attach_to_pinned_sandbox()` now uses `PythonSandbox.attach_to_pinned()` and `NodeSandbox.attach_to_pinned()` instead of direct container operations
 

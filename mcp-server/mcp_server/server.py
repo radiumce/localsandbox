@@ -15,9 +15,9 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import Field
 
-from microsandbox_wrapper.wrapper import MicrosandboxWrapper
-from microsandbox_wrapper.models import SandboxFlavor
-from microsandbox_wrapper.exceptions import (
+from wrapper.wrapper import MicrosandboxWrapper
+from wrapper.models import SandboxFlavor
+from wrapper.exceptions import (
     MicrosandboxWrapperError,
     ResourceLimitError,
     ConfigurationError,

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for HTTP Streamable MCP Server for Microsandbox
+Setup script for HTTP Streamable MCP Server for LocalSandbox
 
 This setup script allows the MCP server to be installed as a Python package
 for easier deployment and distribution.
@@ -15,7 +15,7 @@ def read_readme():
     if os.path.exists(readme_path):
         with open(readme_path, 'r', encoding='utf-8') as f:
             return f.read()
-    return "HTTP Streamable MCP Server for Microsandbox"
+    return "HTTP Streamable MCP Server for LocalSandbox"
 
 # Read requirements from requirements.txt
 def read_requirements():
@@ -34,14 +34,14 @@ def read_requirements():
     return requirements
 
 setup(
-    name="mcp-server-microsandbox",
+    name="mcp-server-localsandbox",
     version="1.0.0",
-    description="HTTP Streamable MCP Server for Microsandbox",
+    description="HTTP Streamable MCP Server for LocalSandbox",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    author="Microsandbox Team",
-    author_email="support@microsandbox.io",
-    url="https://github.com/microsandbox/microsandbox",
+    author="Eric Zane",
+    author_email="radiumce@gmail.com",
+    url="https://github.com/radiumce/localsandbox",
     
     # Package configuration
     packages=find_packages(),
@@ -77,14 +77,7 @@ setup(
     ],
     
     # Keywords for PyPI
-    keywords="mcp model-context-protocol microsandbox sandbox http-server",
-    
-    # Project URLs
-    project_urls={
-        "Bug Reports": "https://github.com/microsandbox/microsandbox/issues",
-        "Source": "https://github.com/microsandbox/microsandbox",
-        "Documentation": "https://github.com/microsandbox/microsandbox/tree/main/mcp-server",
-    },
+    keywords="mcp model-context-protocol localsandbox sandbox http-server AI Agent",
     
     # Additional package data
     package_data={

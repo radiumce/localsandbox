@@ -23,4 +23,4 @@ black>=22.0.0
 flake8>=5.0.0
 mypy>=1.0.0
 
-# Note: microsandbox_wrapper is included as a local package in this repository
+# Note: wrapper is included as a local package in this repository

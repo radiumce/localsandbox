@@ -58,7 +58,7 @@ Modified the `atexit` handler to:
 
 ## Code Changes
 
-### Key Changes in `mcp-server/microsandbox_wrapper/wrapper.py`:
+### Key Changes in `mcp-server/wrapper/wrapper.py`:
 
 Added the `emergency_shutdown_sync()` method:
 

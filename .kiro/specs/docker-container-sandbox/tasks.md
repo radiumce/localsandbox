@@ -157,7 +157,7 @@
   - _需求: 5.4, 3.3_
 
 - [x] 9. 验证 MCP Server 集成兼容性
-  - 确保 microsandbox_wrapper 能正常导入和使用新的 sandbox SDK
+  - 确保 wrapper 能正常导入和使用新的 sandbox SDK
   - 测试现有的 MCP server 功能不受影响
   - 验证错误处理和异常传播正确
   - _需求: 3.1, 3.2, 3.3, 10.1_

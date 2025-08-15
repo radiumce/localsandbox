@@ -126,7 +126,7 @@ Configuration is handled by the `WrapperConfig` class, which provides sensible d
 ### Basic Configuration
 
 ```python
-from microsandbox_wrapper import WrapperConfig, SandboxFlavor
+from wrapper import WrapperConfig, SandboxFlavor
 
 # Create custom configuration
 config = WrapperConfig(
@@ -146,7 +146,7 @@ async with MicrosandboxWrapper(config=config) as wrapper:
 ### Advanced Configuration
 
 ```python
-from microsandbox_wrapper import WrapperConfig, SandboxFlavor
+from wrapper import WrapperConfig, SandboxFlavor
 
 config = WrapperConfig(
     # Server settings
@@ -182,7 +182,7 @@ config = WrapperConfig(
 ### Configuration from Environment with Overrides
 
 ```python
-from microsandbox_wrapper import WrapperConfig, SandboxFlavor
+from wrapper import WrapperConfig, SandboxFlavor
 
 # Load base configuration from environment
 config = WrapperConfig.from_env()
@@ -564,7 +564,7 @@ Use this script to validate your configuration:
 
 import os
 import json
-from microsandbox_wrapper import WrapperConfig
+from wrapper import WrapperConfig
 
 def validate_config():
     """Validate current configuration."""
@@ -660,7 +660,7 @@ pip install python-dotenv
 from dotenv import load_dotenv
 load_dotenv()  # Load .env file
 
-from microsandbox_wrapper import MicrosandboxWrapper
+from wrapper import MicrosandboxWrapper
 # Configuration will be loaded from environment
 ```
 
