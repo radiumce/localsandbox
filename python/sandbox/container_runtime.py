@@ -591,13 +591,18 @@ class DockerRuntime(ContainerRuntime):
             name = obj.get("Names") or obj.get("Name")
             cid = obj.get("ID") or obj.get("Id")
             status = obj.get("Status", "") or ""
-            labels_str = obj.get("Labels") or ""
+            labels_raw = obj.get("Labels")
 
-            # Parse labels string "k=v,m=n" into dict
+            # Normalize labels into a dict for both Docker and Podman outputs
             labels: Dict[str, str] = {}
-            if labels_str and labels_str.lower() != "<none>":
-                for pair in labels_str.split(","):
-                    pair = pair.strip()
+            if isinstance(labels_raw, dict):
+                # Podman often returns a dict for Labels
+                for k, v in labels_raw.items():
+                    labels[str(k)] = str(v)
+            elif isinstance(labels_raw, list):
+                # Some formats may provide a list of "k=v" strings
+                for item in labels_raw:
+                    pair = str(item).strip()
                     if not pair:
                         continue
                     if "=" in pair:
@@ -605,6 +610,21 @@ class DockerRuntime(ContainerRuntime):
                         labels[k] = v
                     else:
                         labels[pair] = "true"
+            elif isinstance(labels_raw, str):
+                labels_str = labels_raw.strip()
+                if labels_str and labels_str.lower() != "<none>":
+                    for pair in labels_str.split(","):
+                        pair = pair.strip()
+                        if not pair:
+                            continue
+                        if "=" in pair:
+                            k, v = pair.split("=", 1)
+                            labels[k] = v
+                        else:
+                            labels[pair] = "true"
+            else:
+                # None or unknown type -> leave labels empty
+                pass
 
             running = status.lower().startswith("up")
             containers.append({
