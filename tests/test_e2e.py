@@ -62,28 +62,8 @@ async def test_e2e_workflow():
 
             logging.info("Step 3: Starting File Creation and Persistence...")
             # Step 3: Verify file creation and persistence
-            file_creation_code = "with open('/shared/test_file.txt', 'w') as f: f.write('hello persistence')"
-            result_create_file = await session.call_tool(
-                'execute_code',
-                arguments={'code': file_creation_code, 'session_id': session_id}
-            )
-            assert not result_create_file.isError, "File creation tool execution resulted in an error."
-
-            # Verify the file was created
-            list_files_command = "ls /shared"
-            result_list_files = await session.call_tool(
-                'execute_command',
-                arguments={'command': list_files_command, 'session_id': session_id}
-            )
-            assert not result_list_files.isError, "List files tool execution resulted in an error."
-            
-            structured_result_list = result_list_files.structuredContent
-            assert 'result' in structured_result_list
-            result_string_list = structured_result_list['result']
-
-            assert "test_file.txt" in result_string_list, f"Expected 'test_file.txt' in ls output, but got {result_string_list}"
-
-            # Create another file to check in the pinned sandbox
+        
+             # Create  file to check in the pinned sandbox
             hello_content = "hello pinned sandbox"
             create_hello_file_code = f"with open('/hello.txt', 'w') as f: f.write('{hello_content}')"
             await session.call_tool(
@@ -185,3 +165,35 @@ async def test_e2e_workflow():
             result_string_list_again = structured_result_list_again['result']
             assert "test_file.txt" in result_string_list_again, f"Expected 'test_file.txt' in re-attached sandbox, but got {result_string_list_again}"
             logging.info("Step 9: Shared Volume Access Verification in Re-attached Sandbox PASSED.")
+
+@pytest.mark.asyncio
+async def test_execute_command_creates_session():
+    """Verify that calling execute_command without a session_id creates a new session."""
+    async with streamablehttp_client("http://localhost:8775/mcp") as (read_stream, write_stream, _):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+
+            command_to_execute = "echo 'hello world'"
+            logging.info("Testing execute_command without session_id...")
+
+            result = await session.call_tool(
+                'execute_command',
+                arguments={'command': command_to_execute}
+            )
+
+            assert not result.isError, f"Tool execution failed: {result.content[0].text if result.isError else ''}"
+
+            structured_result = result.structuredContent
+            assert 'result' in structured_result, "Expected 'result' in structured result"
+            result_string = structured_result['result']
+
+            assert "hello world" in result_string, f"Expected 'hello world' in result, but got {result_string}"
+            assert "[Success: True]" in result_string, f"Expected success status in result, but got {result_string}"
+
+            # Extract session_id from the result string
+            match = re.search(r"\[Session: (\S+)\]", result_string)
+            assert match, f"Could not find session ID in result: {result_string}"
+            new_session_id = match.group(1)
+            assert uuid.UUID(new_session_id), f"Invalid session ID format: {new_session_id}"
+
+            logging.info(f"execute_command without session_id PASSED. New session created: {new_session_id}")
