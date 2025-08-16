@@ -253,6 +253,16 @@ class BaseSandbox(ABC):
             original_container_id = self._container_id
             original_name = self._name
             
+            # Pre-check: ensure target pinned_name is not already taken by any existing container
+            try:
+                existing = await self._runtime.get_container_info(pinned_name)
+                # If no exception is raised, a container with the target name exists
+                if existing:
+                    raise RuntimeError(f"Cannot pin sandbox: target name '{pinned_name}' is already in use")
+            except RuntimeError:
+                # Treat as not found; proceed to rename
+                pass
+
             # First, rename the container to the pinned name
             await self._runtime.rename_container(original_name, pinned_name)
             
