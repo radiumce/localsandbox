@@ -166,7 +166,7 @@ async def test_e2e_workflow():
                 structured_result_list_again = result_list_files_again.structuredContent
                 assert 'result' in structured_result_list_again
                 result_string_list_again = structured_result_list_again['result']
-                assert "test_file.txt" in result_string_list_again, f"Expected 'test_file.txt' in re-attached sandbox, but got {result_string_list_again}"
+                assert "data.txt" in result_string_list_again, f"Expected 'data.txt' in re-attached sandbox, but got {result_string_list_again}"
                 logging.info("Step 9: Shared Volume Access Verification in Re-attached Sandbox PASSED.")
             finally:
                 # Best-effort cleanup: stop re-attached session and force remove pinned sandbox
