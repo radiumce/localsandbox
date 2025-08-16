@@ -23,9 +23,8 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Transport Options:
-  stdio         Standard I/O transport (default)
-  streamable-http   HTTP streaming transport
-  sse           Server-Sent Events transport
+  streamable-http   HTTP streaming transport (default)
+  sse               Server-Sent Events transport
 
 Environment Variables:
   MCP_SERVER_HOST     Server host address for HTTP transports (default: localhost)
@@ -41,9 +40,9 @@ Examples:
 
     parser.add_argument(
         "--transport",
-        choices=["stdio", "streamable-http", "sse"],
-        default="stdio",
-        help="Transport type (default: stdio)",
+        choices=["streamable-http", "sse"],
+        default="streamable-http",
+        help="Transport type (default: streamable-http)",
     )
 
     parser.add_argument(
@@ -118,8 +117,7 @@ def main():
     # Parse command line arguments
     args = parse_args()
 
-    # Setup logging - for stdio transport, ensure we don't interfere with stdout
-    # The logging is already configured to use stderr in the wrapper setup
+    # Setup logging. Logging uses stderr in the wrapper setup
     setup_logging(level=args.log_level)
     logger = get_logger(__name__)
     
@@ -131,9 +129,7 @@ def main():
     logger.debug("Wrapper will initialize when server starts")
 
     try:
-        # Only log startup for non-stdio transports to avoid interfering with MCP protocol
-        if args.transport != "stdio":
-            logger.info(f"Starting MCP Server with transport: {args.transport}")
+        logger.info(f"Starting MCP Server with transport: {args.transport}")
 
         # Get server configuration
         config = get_server_config(args)
@@ -142,10 +138,7 @@ def main():
         server_app = create_server_app()
 
         # Run with the specified transport
-        if args.transport == "stdio":
-            # Don't log anything for stdio to avoid interfering with MCP protocol
-            server_app.run(transport="stdio")
-        elif args.transport == "streamable-http":
+        if args.transport == "streamable-http":
             # For HTTP transports, always use custom uvicorn approach to have full control
             logger.info(f"Using Streamable HTTP transport on {config['host']}:{config['port']}")
             run_http_server(server_app, config)
