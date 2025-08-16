@@ -147,6 +147,35 @@ class ContainerRuntime(ABC):
         pass
     
     @abstractmethod
+    async def force_remove_container(self, container_id: str) -> None:
+        """
+        Force remove a container regardless of its state.
+        
+        This should stop the container if necessary and remove it forcibly.
+        
+        Args:
+            container_id: ID or name of the container to force remove
+            
+        Raises:
+            RuntimeError: If force removal fails
+        """
+        pass
+
+    @abstractmethod
+    async def force_remove_by_name(self, name: str, namespace: Optional[str] = None) -> None:
+        """
+        Force remove a container by name or pinned label, ignoring pinned status.
+
+        Args:
+            name: The container name or pinned_name label value
+            namespace: Optional namespace label to narrow the search
+
+        Raises:
+            RuntimeError: If the container cannot be found or removal fails
+        """
+        pass
+    
+    @abstractmethod
     async def execute_command(
         self, 
         container_id: str, 
@@ -360,6 +389,40 @@ class DockerRuntime(ContainerRuntime):
         
         if result["returncode"] != 0:
             raise RuntimeError(f"Failed to remove container {container_id}: {result['stderr']}")
+    
+    async def force_remove_container(self, container_id: str) -> None:
+        """Force remove a Docker container (stops and removes if running)."""
+        result = await self._run_command(["rm", "-f", container_id], timeout=30)
+        
+        if result["returncode"] != 0:
+            raise RuntimeError(f"Failed to force remove container {container_id}: {result['stderr']}")
+
+    async def force_remove_by_name(self, name: str, namespace: Optional[str] = None) -> None:
+        """Force remove a Docker container by name or pinned label."""
+        info: Dict[str, Any] = {}
+        # Try docker inspect by exact name first
+        try:
+            info = await self.get_container_info(name)
+        except Exception:
+            info = {}
+
+        container_id: Optional[str] = None
+        if info:
+            container_id = info.get('Id') or info.get('id')
+        else:
+            # Fallback: search by labels via docker ps
+            label_filters: Dict[str, str] = {"pinned_name": name}
+            if namespace:
+                label_filters["localsandbox.namespace"] = namespace
+            containers = await self.get_containers_by_label(label_filters)
+            if containers:
+                first = containers[0]
+                container_id = first.get('id') or first.get('Id')
+
+        if not container_id:
+            raise RuntimeError(f"No container found to force remove for name '{name}'")
+
+        await self.force_remove_container(container_id)
     
     async def execute_command(
         self, 

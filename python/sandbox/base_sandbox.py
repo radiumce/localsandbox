@@ -391,6 +391,39 @@ class BaseSandbox(ABC):
         except Exception as e:
             raise RuntimeError(f"Failed to list pinned sandboxes: {e}")
 
+    @classmethod
+    async def force_remove_by_name(
+        cls,
+        name: str,
+        container_runtime: Optional[str] = None,
+        namespace: str = "default",
+        **kwargs
+    ) -> None:
+        """
+        Forcibly stop and remove a sandbox container by name, ignoring pinned status.
+
+        This is intended for test teardown and ops cleanup tools and works for both
+        pinned and non-pinned sandboxes.
+
+        Args:
+            name: The container name (pinned name or normal sandbox name)
+            container_runtime: Container runtime to use ('docker' or 'podman')
+            namespace: Namespace label value to match (best-effort; removal is by ID)
+
+        Raises:
+            RuntimeError: If the container cannot be found or removal fails
+        """
+        # Create a temporary runtime instance
+        config = get_config()
+        runtime_name = container_runtime or config.runtime_type
+        runtime_cmd = get_runtime_command(runtime_name)
+        runtime = DockerRuntime(runtime_cmd)
+
+        try:
+            await runtime.force_remove_by_name(name, namespace=namespace)
+        except Exception as e:
+            raise RuntimeError(f"Failed to force remove sandbox '{name}': {e}")
+
     @property
     def metrics(self):
         """
