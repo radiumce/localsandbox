@@ -31,7 +31,7 @@ class ContainerRuntimeConfig:
     default_timeout: int = 1800  # 30 minutes
     
     # Container configuration
-    default_working_dir: str = "/workspace"
+    default_working_dir: str = "/root"
     
     def __post_init__(self):
         """Validate configuration parameters."""
@@ -109,7 +109,7 @@ class ConfigManager:
             timeout = self._parse_int_env("LOCALSANDBOX_DEFAULT_TIMEOUT", 1800)
             
             # Working directory
-            working_dir = os.environ.get("LOCALSANDBOX_WORKING_DIR", "/workspace")
+            working_dir = os.environ.get("LOCALSANDBOX_WORKING_DIR", "/root")
             
             return ContainerRuntimeConfig(
                 runtime_type=runtime_type,

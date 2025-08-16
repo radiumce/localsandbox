@@ -27,7 +27,7 @@ class ContainerConfig:
     cpus: Optional[float] = None  # CPU limit
     volumes: Optional[List[str]] = field(default_factory=list)  # Volume mappings
     environment: Optional[Dict[str, str]] = field(default_factory=dict)  # Environment variables
-    working_dir: str = "/workspace"  # Working directory inside container
+    working_dir: str = "/root"  # Working directory inside container
     command: Optional[List[str]] = None  # Command to run in container
     labels: Optional[Dict[str, str]] = field(default_factory=dict)  # Container labels
     
