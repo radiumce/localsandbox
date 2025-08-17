@@ -61,13 +61,13 @@ def load_env_file(env_file_path):
                 os.environ[key] = value
 
 
-def check_docker():
-    """Check if Docker is available and running."""
+def check_runtime(runtime_cmd: str):
+    """Check if the configured container runtime is available and running."""
     try:
-        subprocess.run(['docker', 'info'], 
-                      stdout=subprocess.DEVNULL, 
-                      stderr=subprocess.DEVNULL, 
-                      check=True)
+        subprocess.run([runtime_cmd, 'info'],
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL,
+                       check=True)
         return True
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
@@ -106,30 +106,30 @@ Example usage in sandbox:
 """)
 
 
-def pull_docker_images():
-    """Pull required Docker images."""
+def pull_images(runtime_cmd: str):
+    """Ensure required images are present for the selected container runtime."""
     python_image = os.getenv('LOCALSANDBOX_PYTHON_IMAGE', 'python:3.11-slim')
     node_image = os.getenv('LOCALSANDBOX_NODE_IMAGE', 'node:18-slim')
-    
+
     images = [python_image, node_image]
-    
+
     for image in images:
-        print(f"Checking Docker image: {image}")
+        print(f"Checking {runtime_cmd} image: {image}")
         try:
-            subprocess.run(['docker', 'image', 'inspect', image], 
-                          stdout=subprocess.DEVNULL, 
-                          stderr=subprocess.DEVNULL, 
-                          check=True)
+            subprocess.run([runtime_cmd, 'image', 'inspect', image],
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL,
+                           check=True)
             print(f"✓ Image {image} is available")
         except subprocess.CalledProcessError:
             print(f"Pulling image: {image}")
             try:
-                subprocess.run(['docker', 'pull', image], check=True)
+                subprocess.run([runtime_cmd, 'pull', image], check=True)
                 print(f"✓ Image {image} pulled successfully")
             except subprocess.CalledProcessError as e:
                 print(f"❌ Failed to pull image {image}: {e}")
                 return False
-    
+
     return True
 
 
@@ -171,22 +171,25 @@ def start_docker_server():
     else:
         print("⚠️  No .env.local file found, using default configuration")
     
-    # Check Docker availability
+    # Determine runtime command from environment (default: docker)
+    runtime_cmd = (os.getenv('CONTAINER_RUNTIME', 'docker') or 'docker').strip().lower()
+    
+    # Check container runtime availability
     if not args.skip_docker_check:
-        if not check_docker():
-            print("❌ Docker is not available or not running")
-            print("Please install Docker and ensure it's running")
+        if not check_runtime(runtime_cmd):
+            print(f"❌ {runtime_cmd} is not available or not running")
+            print(f"Please install {runtime_cmd} and ensure it's running")
             sys.exit(1)
-        print("✓ Docker is available and running")
+        print(f"✓ {runtime_cmd} is available and running")
     
     # Setup directories
     setup_directories()
     print("✓ Directories setup complete")
     
-    # Pull Docker images
+    # Pull required images for the selected runtime
     if not args.skip_image_pull:
-        if not pull_docker_images():
-            print("❌ Failed to pull required Docker images")
+        if not pull_images(runtime_cmd):
+            print("❌ Failed to pull required images")
             sys.exit(1)
     
     # Add sandbox package to Python path
