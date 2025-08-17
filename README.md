@@ -13,13 +13,6 @@ A Model Context Protocol (MCP) server that provides secure code execution capabi
 
 ## Installation
 
-Install the package using pip:
-
-```bash
-pip install microsandbox-mcp-server
-```
-
-Or install from source:
 
 ```bash
 git clone <repository-url>
@@ -35,36 +28,23 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
-### Start the MCP Server (stdio transport)
-
-```bash
-microsandbox-mcp-server
-```
 
 ### Start with LocalSandbox (recommended)
+
+cd <repository-name>
+cp .env.example .env.docker
 
 ```bash
 start-localsandbox
 ```
 
 This will:
-- Load configuration from `.env.local` file
+- Load configuration from `.env.docker` file
 - Check Docker availability
 - Pull required Docker images
 - Setup shared directories
 - Start the server with HTTP transport
 
-### Start with HTTP transport
-
-```bash
-microsandbox-mcp-server --transport streamable-http --host 0.0.0.0 --port 8775
-```
-
-### Start with SSE transport
-
-```bash
-microsandbox-mcp-server --transport sse --host localhost --port 8775 --enable-cors
-```
 
 ## Configuration
 
@@ -96,7 +76,7 @@ The server can be configured through command-line arguments or environment varia
 
 ### LocalSandbox Configuration File
 
-The `start-localsandbox` command uses a `.env.local` file for configuration. Example:
+The `start-localsandbox` command uses a `.env.docker` file for configuration. Example:
 
 ```bash
 # MCP Server Configuration
@@ -122,46 +102,6 @@ MSB_SHARED_VOLUME_PATH='["/path/to/host/dir:/workspace"]'
 MSB_LOG_LEVEL=DEBUG
 ```
 
-## Usage Examples
-
-### Basic stdio usage (for MCP clients)
-
-```bash
-microsandbox-mcp-server
-```
-
-### HTTP server for web integration
-
-```bash
-microsandbox-mcp-server --transport streamable-http --port 9000 --enable-cors
-```
-
-### SSE server with custom configuration
-
-```bash
-MCP_SERVER_HOST=0.0.0.0 MCP_SERVER_PORT=8080 microsandbox-mcp-server --transport sse --enable-cors
-```
-
-### LocalSandbox with custom environment file
-
-```bash
-start-localsandbox --env-file /path/to/custom/.env.local
-```
-
-### Skip Docker checks (for development)
-
-```bash
-start-localsandbox --skip-docker-check --skip-image-pull
-```
-
-## Development
-
-### Running Tests
-
-```bash
-pip install -e ".[test]"
-pytest tests/
-```
 
 ### Integration (E2E) Tests
 
@@ -195,14 +135,6 @@ Notes:
 - The E2E test expects the server to be running (step 3) and will use `.env.test` for its configuration.
 - You can edit `.env.test` to switch runtimes (e.g., `CONTAINER_RUNTIME=podman`) and set default images.
 
-### Code Formatting
-
-```bash
-pip install -e ".[dev]"
-black .
-flake8 .
-mypy .
-```
 
 ## Architecture
 
@@ -216,7 +148,7 @@ The project consists of several key components:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - Docker (for sandbox execution)
 - Network access (for HTTP transports)
 
@@ -227,7 +159,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Contributing
 
 Contributions are welcome! Please read the contributing guidelines and submit pull requests to the main repository.
-
-## Support
-
-For issues and questions, please use the GitHub issue tracker or contact support@microsandbox.io.
