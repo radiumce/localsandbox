@@ -7,11 +7,9 @@ implementations, supporting both Docker and Podman as container runtimes.
 
 import asyncio
 import json
-import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any
-
 
 @dataclass
 class ContainerConfig:
@@ -399,11 +397,13 @@ class DockerRuntime(ContainerRuntime):
 
     async def force_remove_by_name(self, name: str, namespace: Optional[str] = None) -> None:
         """Force remove a Docker container by name or pinned label."""
+        
         info: Dict[str, Any] = {}
         # Try docker inspect by exact name first
         try:
             info = await self.get_container_info(name)
-        except Exception:
+        except Exception as e:
+            print(f"inspect by name failed for {name}: {e}")
             info = {}
 
         container_id: Optional[str] = None
@@ -420,7 +420,7 @@ class DockerRuntime(ContainerRuntime):
                 container_id = first.get('id') or first.get('Id')
 
         if not container_id:
-            raise RuntimeError(f"No container found to force remove for name '{name}'")
+            raise RuntimeError(f"No container found to force remove for name '{name}' info = '{info}'")
 
         await self.force_remove_container(container_id)
     

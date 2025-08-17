@@ -15,7 +15,6 @@ from .config import get_config, get_runtime_command
 # from .metrics import Metrics
 from .container_runtime import ContainerRuntime, DockerRuntime
 
-
 class BaseSandbox(ABC):
     """
     Base sandbox environment for executing code safely.
@@ -253,16 +252,18 @@ class BaseSandbox(ABC):
             original_container_id = self._container_id
             original_name = self._name
             
-            # Pre-check: ensure target pinned_name is not already taken by any existing container
+            # Pre-check: see if a container with the target pinned_name already exists
+            existing_container = None
             try:
-                existing = await self._runtime.get_container_info(pinned_name)
-                # If no exception is raised, a container with the target name exists
-                if existing:
-                    raise RuntimeError(f"Cannot pin sandbox: target name '{pinned_name}' is already in use")
+                existing_container = await self._runtime.get_container_info(pinned_name)
             except RuntimeError:
-                # Treat as not found; proceed to rename
+                # This is the expected case: the name is not in use.
                 pass
 
+            # If a container was found, raise an error to stop the pinning process.
+            if existing_container:
+                raise RuntimeError(f"Cannot pin sandbox: target name '{pinned_name}' is already in use")
+            
             # First, rename the container to the pinned name
             await self._runtime.rename_container(original_name, pinned_name)
             
@@ -397,18 +398,11 @@ class BaseSandbox(ABC):
                 })
             
             return pinned_sandboxes
-            
         except Exception as e:
             raise RuntimeError(f"Failed to list pinned sandboxes: {e}")
 
     @classmethod
-    async def force_remove_by_name(
-        cls,
-        name: str,
-        container_runtime: Optional[str] = None,
-        namespace: str = "default",
-        **kwargs
-    ) -> None:
+    async def force_remove_by_name(cls, name: str, namespace: Optional[str] = None, container_runtime: Optional[str] = None, config_path: Optional[str] = None) -> None:
         """
         Forcibly stop and remove a sandbox container by name, ignoring pinned status.
 
@@ -423,10 +417,12 @@ class BaseSandbox(ABC):
         Raises:
             RuntimeError: If the container cannot be found or removal fails
         """
-        # Create a temporary runtime instance
-        config = get_config()
+        # Create a temporary runtime instance using the correct config path
+        from .config import ConfigManager
+        manager = ConfigManager(dotenv_path=config_path)
+        config = manager.get_config()
         runtime_name = container_runtime or config.runtime_type
-        runtime_cmd = get_runtime_command(runtime_name)
+        runtime_cmd = manager.get_runtime_command(runtime_name)
         runtime = DockerRuntime(runtime_cmd)
 
         try:

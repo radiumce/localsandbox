@@ -193,7 +193,7 @@ async def test_e2e_workflow():
 
                 try:
                     logging.info("Cleanup: Force removing pinned sandbox (if exists)...")
-                    await BaseSandbox.force_remove_by_name(pin_name)
+                    await BaseSandbox.force_remove_by_name(pin_name, config_path=".env.test")
                 except Exception as e:
                     logging.warning(f"Cleanup: Force remove by name skipped/failed: {e}")
 

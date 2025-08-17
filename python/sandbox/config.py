@@ -8,6 +8,7 @@ support, validation, and default values for container runtime settings.
 import os
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
+from dotenv import load_dotenv
 
 
 @dataclass
@@ -67,8 +68,9 @@ class ConfigManager:
     with proper validation and error handling.
     """
     
-    def __init__(self):
+    def __init__(self, dotenv_path: Optional[str] = None):
         """Initialize the configuration manager."""
+        load_dotenv(dotenv_path=dotenv_path)
         self._config: Optional[ContainerRuntimeConfig] = None
     
     def get_config(self) -> ContainerRuntimeConfig:
