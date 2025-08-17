@@ -163,6 +163,38 @@ pip install -e ".[test]"
 pytest tests/
 ```
 
+### Integration (E2E) Tests
+
+Follow these steps to run the end-to-end integration test locally:
+
+1. Copy the example env file to a test env file and adjust values as needed (e.g., set `CONTAINER_RUNTIME`, images, ports):
+
+```bash
+cp .env.example .env.test
+```
+
+2. Install the project (from the repository root):
+
+```bash
+pip install .
+```
+
+3. Start the MCP server using LocalSandbox in a separate terminal:
+
+```bash
+start-localsandbox --env-file .env.test
+```
+
+4. From the project root, run the E2E test module:
+
+```bash
+python3 -m pytest tests/test_e2e.py
+```
+
+Notes:
+- The E2E test expects the server to be running (step 3) and will use `.env.test` for its configuration.
+- You can edit `.env.test` to switch runtimes (e.g., `CONTAINER_RUNTIME=podman`) and set default images.
+
 ### Code Formatting
 
 ```bash
