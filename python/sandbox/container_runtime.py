@@ -685,7 +685,7 @@ class DockerRuntime(ContainerRuntime):
             temp_image = f"temp_pin_{container_name}_{hash(str(labels)) % 10000}"
             
             # Simple commit without changes first
-            commit_result = await self._run_command(["commit", container_id, temp_image], timeout=30)
+            commit_result = await self._run_command(["commit", container_id, temp_image], timeout=180)
             if commit_result["returncode"] != 0:
                 raise RuntimeError(f"Failed to commit container: {commit_result['stderr']}")
             
