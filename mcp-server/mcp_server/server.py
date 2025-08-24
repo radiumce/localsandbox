@@ -355,7 +355,7 @@ async def get_volume_mappings(ctx: Context = None) -> str:
         
         mapping_info = []
         for mapping in mappings:
-            info = f"Host: {mapping.host_path} -> Container: {mapping.container_path}"
+            info = f"Host: {mapping.host_path} -> Container: {mapping.sandbox_path}"
             mapping_info.append(info)
         
         return "\n".join(mapping_info)
