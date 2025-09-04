@@ -74,22 +74,14 @@ docker --version
 docker ps
 
 
-### 4. Configure Environment
-
-Copy and customize the environment configuration:
-
-```bash
-# The test uses .env.example by default
-# Optionally, create a custom configuration:
-cp .env.example .env.custom
-# Edit .env.custom as needed
-```
-
 ## Configuration
+
+### manually start mcp server at the root of the project folder
+start-localsandbox --env-file .env.test
 
 ### Environment File Structure
 
-The test reads configuration from `.env.example` (or a custom file specified with `--config`). Key configuration sections include:
+The test should reads configuration from `.env.test` 
 
 #### MCP Server Configuration
 ```bash

@@ -240,3 +240,91 @@ async def test_execute_command_creates_session():
                         )
                     except Exception as e:
                         logging.warning(f"Cleanup: Failed to stop auto-created session: {e}")
+
+
+@pytest.mark.asyncio
+async def test_parameter_validation_incorrect_session_field():
+    """Verify that parameter validation rejects incorrect 'session' field (should be 'session_id')."""
+    async with streamablehttp_client("http://localhost:8775/mcp") as (read_stream, write_stream, _):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            
+            logging.info("Testing parameter validation with incorrect 'session' field...")
+            
+            # Test with incorrect parameter name 'session' instead of 'session_id'
+            code_to_execute = 'print("Hello, World!")'
+            
+            try:
+                result = await session.call_tool(
+                    'execute_code',
+                    arguments={
+                        'code': code_to_execute,
+                        'session': 'invalid-session-field'  # Incorrect field name
+                    }
+                )
+                
+                # The call should fail due to parameter validation
+                assert result.isError, "Expected tool execution to fail due to invalid parameter 'session'"
+                
+                # Check that the error message mentions the undefined parameter
+                error_text = result.content[0].text if result.content else ""
+                assert "Extra inputs are not permitted" in error_text, f"Expected Pydantic extra_forbidden error, but got: {error_text}"
+                assert "session" in error_text, f"Expected 'session' field to be mentioned in error, but got: {error_text}"
+                
+                logging.info("Parameter validation test PASSED - correctly rejected 'session' field")
+                
+            except Exception as e:
+                # If an exception is raised instead of returning an error result
+                error_message = str(e)
+                assert "Extra inputs are not permitted" in error_message, f"Expected Pydantic extra_forbidden error, but got: {error_message}"
+                assert "session" in error_message, f"Expected 'session' field to be mentioned in error, but got: {error_message}"
+                
+                logging.info("Parameter validation test PASSED - correctly raised exception for 'session' field")
+
+
+@pytest.mark.asyncio
+async def test_parameter_validation_multiple_incorrect_fields():
+    """Verify that parameter validation rejects multiple incorrect parameter fields."""
+    async with streamablehttp_client("http://localhost:8775/mcp") as (read_stream, write_stream, _):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            
+            logging.info("Testing parameter validation with multiple incorrect fields...")
+            
+            # Test with multiple incorrect parameter names
+            try:
+                result = await session.call_tool(
+                    'execute_command',
+                    arguments={
+                        'command': 'echo "test"',
+                        'session': 'invalid-session-field',  # Should be 'session_id'
+                        'time_out': 30,  # Should be 'timeout'
+                        'extra_field': 'should_not_exist'  # Completely invalid
+                    }
+                )
+                
+                # The call should fail due to parameter validation
+                assert result.isError, "Expected tool execution to fail due to invalid parameters"
+                
+                # Check that the error message mentions the undefined parameters
+                error_text = result.content[0].text if result.content else ""
+                assert "Extra inputs are not permitted" in error_text, f"Expected Pydantic extra_forbidden error, but got: {error_text}"
+                
+                # Check that invalid fields are mentioned (at least one should be in the error)
+                invalid_fields = ["session", "time_out", "extra_field"]
+                found_invalid_field = any(field in error_text for field in invalid_fields)
+                assert found_invalid_field, f"Expected at least one invalid field to be mentioned in error, but got: {error_text}"
+                
+                logging.info("Multiple parameter validation test PASSED - correctly rejected multiple invalid fields")
+                
+            except Exception as e:
+                # If an exception is raised instead of returning an error result
+                error_message = str(e)
+                assert "Extra inputs are not permitted" in error_message, f"Expected Pydantic extra_forbidden error, but got: {error_message}"
+                
+                # Check that invalid fields are mentioned (at least one should be in the error)
+                invalid_fields = ["session", "time_out", "extra_field"]
+                found_invalid_field = any(field in error_message for field in invalid_fields)
+                assert found_invalid_field, f"Expected at least one invalid field to be mentioned in error, but got: {error_message}"
+                
+                logging.info("Multiple parameter validation test PASSED - correctly raised exception for multiple invalid fields")
