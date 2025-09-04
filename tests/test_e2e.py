@@ -43,7 +43,7 @@ async def test_e2e_workflow():
                 result_string = structured_result['result']
 
                 assert "Hello, World!" in result_string, f"Expected 'Hello, World!' in result string, but got {result_string}"
-                assert "[Success: True]" in result_string, f"Expected '[Success: True]' in result string, but got {result_string}"
+                assert "[success: True]" in result_string, f"Expected '[success: True]' in result string, but got {result_string}"
                 logging.info("Step 1: Python Hello World Execution PASSED.")
 
                 logging.info("Step 2: Starting Shared Volume Access Verification...")
@@ -63,7 +63,7 @@ async def test_e2e_workflow():
                 result_string_command = structured_result_command['result']
 
                 assert "data.txt" in result_string_command, f"Expected 'data.txt' in result string, but got {result_string_command}"
-                assert "[Success: True]" in result_string_command, f"Expected '[Success: True]' in result string, but got {result_string_command}"
+                assert "[success: True]" in result_string_command, f"Expected '[success: True]' in result string, but got {result_string_command}"
                 logging.info("Step 2: Shared Volume Access Verification PASSED.")
 
                 logging.info("Step 3: Starting File Creation and Persistence...")
@@ -221,10 +221,10 @@ async def test_execute_command_creates_session():
                 result_string = structured_result['result']
 
                 assert "hello world" in result_string, f"Expected 'hello world' in result, but got {result_string}"
-                assert "[Success: True]" in result_string, f"Expected success status in result, but got {result_string}"
+                assert "[success: True]" in result_string, f"Expected success status in result, but got {result_string}"
 
                 # Extract session_id from the result string
-                match = re.search(r"\[Session: (\S+)\]", result_string)
+                match = re.search(r"\[session_id: (\S+)\]", result_string)
                 assert match, f"Could not find session ID in result: {result_string}"
                 new_session_id = match.group(1)
                 assert uuid.UUID(new_session_id), f"Invalid session ID format: {new_session_id}"

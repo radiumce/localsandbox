@@ -208,10 +208,10 @@ async def execute_code(
         
         # Add metadata information
         metadata = (
-            f"\n[Session: {result.session_id}] "
-            f"[Time: {result.execution_time_ms}ms] "
-            f"[Template: {result.template}] "
-            f"[Success: {result.success}]"
+            f"\n[session_id: {result.session_id}] "
+            f"[time: {result.execution_time_ms}ms] "
+            f"[template: {result.template}] "
+            f"[success: {result.success}]"
         )
         
         return output_text + metadata
@@ -265,11 +265,11 @@ async def execute_command(
         
         # Add metadata information
         metadata = (
-            f"\n[Session: {result.session_id}] "
-            f"[Command: {command}] "
-            f"[Exit Code: {result.exit_code}] "
-            f"[Time: {result.execution_time_ms}ms] "
-            f"[Success: {result.success}]"
+            f"\n[session_id: {result.session_id}] "
+            f"[command: {command}] "
+            f"[exit code: {result.exit_code}] "
+            f"[time: {result.execution_time_ms}ms] "
+            f"[success: {result.success}]"
         )
         
         return output_text + metadata
