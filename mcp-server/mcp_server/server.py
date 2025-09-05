@@ -17,7 +17,6 @@ from pydantic import Field, ConfigDict
 import mcp.types as types
 
 from wrapper.wrapper import MicrosandboxWrapper
-from mcp_server.validation import validate_tool_parameters, UndefinedParameterError
 
 # Patch FastMCP's ArgModelBase to forbid extra fields
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase
