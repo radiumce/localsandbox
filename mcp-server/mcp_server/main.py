@@ -92,9 +92,18 @@ def get_server_config(args: argparse.Namespace) -> dict:
 
 def setup_cleanup_handlers():
     """Setup cleanup handlers for graceful shutdown."""
+    shutdown_initiated = False
+    
     def signal_handler(signum, frame):
         """Signal handler for graceful shutdown."""
-        print(f"Received signal {signum}, shutting down...", file=sys.stderr)
+        nonlocal shutdown_initiated
+        
+        if shutdown_initiated:
+            print("Force quit - second CTRL+C received", file=sys.stderr)
+            os._exit(1)  # Force immediate exit
+        
+        shutdown_initiated = True
+        print(f"Received signal {signum}, shutting down gracefully... (Press CTRL+C again to force quit)", file=sys.stderr)
         
         # Import here to avoid circular imports
         from mcp_server.server import shutdown_wrapper_sync
@@ -105,7 +114,21 @@ def setup_cleanup_handlers():
         except Exception as e:
             print(f"Warning: Error during wrapper shutdown: {e}", file=sys.stderr)
         
-        sys.exit(0)
+        # Set a longer timeout only as a safety net for truly stuck processes
+        def force_exit():
+            print("Graceful shutdown timeout - forcing exit", file=sys.stderr)
+            os._exit(1)
+        
+        # Give 10 seconds for graceful shutdown, then force exit (only as safety net)
+        import threading
+        timer = threading.Timer(10.0, force_exit)
+        timer.start()
+        
+        try:
+            sys.exit(0)
+        finally:
+            # Cancel the timer if we exit normally
+            timer.cancel()
     
     # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)
@@ -205,12 +228,16 @@ def run_http_server(server_app, config):
             allow_headers=["*"],
         )
     
-    # Run with uvicorn
+    # Run with uvicorn with improved shutdown handling
     uvicorn.run(
         app,
         host=config["host"],
         port=config["port"],
-        log_level="info"
+        log_level="info",
+        access_log=False,  # Reduce log noise
+        server_header=False,  # Reduce response headers
+        timeout_keep_alive=5,  # Shorter keep-alive timeout
+        timeout_graceful_shutdown=3,  # Shorter graceful shutdown timeout
     )
 
 
@@ -261,12 +288,16 @@ def run_sse_server(server_app, config):
             allow_headers=["*"],
         )
     
-    # Run with uvicorn
+    # Run with uvicorn with improved shutdown handling
     uvicorn.run(
         app,
         host=config["host"],
         port=config["port"],
-        log_level="info"
+        log_level="info",
+        access_log=False,  # Reduce log noise
+        server_header=False,  # Reduce response headers
+        timeout_keep_alive=5,  # Shorter keep-alive timeout
+        timeout_graceful_shutdown=3,  # Shorter graceful shutdown timeout
     )
 
 
