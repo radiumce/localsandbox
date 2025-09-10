@@ -178,7 +178,7 @@ async def execute_code(
     code: str = Field(description="Code to execute"),
     template: str = Field(default="python", description="Sandbox template"),
     session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
-    flavor: str = Field(default="small", description="Resource configuration"),
+    flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (MSB_DEFAULT_FLAVOR)"),
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
     ctx: Context = None,
 ) -> str:
@@ -194,8 +194,11 @@ async def execute_code(
         # Always use the global wrapper instance for consistent behavior across all transports
         wrapper = await get_or_create_wrapper()
         
-        # Convert flavor string to enum
-        flavor_enum = SandboxFlavor(flavor)
+        # Determine flavor: use wrapper config default if not provided
+        if flavor is None:
+            flavor_enum = wrapper.get_config().default_flavor
+        else:
+            flavor_enum = SandboxFlavor(flavor)
         
         # Execute code through wrapper
         result = await wrapper.execute_code(
@@ -234,7 +237,7 @@ async def execute_command(
     command: str = Field(description="Complete command line to execute (including arguments, pipes, redirections, etc.)"),
     template: str = Field(default="python", description="Sandbox template"),
     session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
-    flavor: str = Field(default="small", description="Resource configuration"),
+    flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (MSB_DEFAULT_FLAVOR)"),
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
     ctx: Context = None,
 ) -> str:
@@ -250,8 +253,11 @@ async def execute_command(
         # Always use the global wrapper instance for consistent behavior across all transports
         wrapper = await get_or_create_wrapper()
         
-        # Convert flavor string to enum
-        flavor_enum = SandboxFlavor(flavor)
+        # Determine flavor: use wrapper config default if not provided
+        if flavor is None:
+            flavor_enum = wrapper.get_config().default_flavor
+        else:
+            flavor_enum = SandboxFlavor(flavor)
         
         # Execute command line through shell using wrapper
         result = await wrapper.execute_command(

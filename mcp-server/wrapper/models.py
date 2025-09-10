@@ -22,6 +22,7 @@ class SandboxFlavor(Enum):
     SMALL = "small"   # 1 CPU, 1GB RAM - suitable for light tasks
     MEDIUM = "medium" # 2 CPU, 2GB RAM - suitable for moderate workloads  
     LARGE = "large"   # 4 CPU, 4GB RAM - suitable for heavy computations
+    XLARGE = "xlarge" # 4 CPU, 8GB RAM - suitable for heavier workloads
     
     def get_memory_mb(self) -> int:
         """
@@ -33,7 +34,8 @@ class SandboxFlavor(Enum):
         return {
             self.SMALL: 1024,
             self.MEDIUM: 2048,
-            self.LARGE: 4096
+            self.LARGE: 4096,
+            self.XLARGE: 8192
         }[self]
         
     def get_cpus(self) -> float:
@@ -46,7 +48,8 @@ class SandboxFlavor(Enum):
         return {
             self.SMALL: 1.0,
             self.MEDIUM: 2.0,
-            self.LARGE: 4.0
+            self.LARGE: 4.0,
+            self.XLARGE: 4.0
         }[self]
 
 
