@@ -176,7 +176,7 @@ mcp = FastMCP("Microsandbox Server", lifespan=mcp_lifespan)
 @mcp.tool()
 async def execute_code(
     code: str = Field(description="Code to execute"),
-    template: str = Field(default="python", description="Sandbox template"),
+    template: str = Field(default="python", description="Sandbox template. Supported values: 'python' (Python environment), 'node'/'nodejs'/'javascript' (Node.js environment)"),
     session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
     flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (MSB_DEFAULT_FLAVOR)"),
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
@@ -235,7 +235,7 @@ async def execute_code(
 @mcp.tool()
 async def execute_command(
     command: str = Field(description="Complete command line to execute (including arguments, pipes, redirections, etc.)"),
-    template: str = Field(default="python", description="Sandbox template"),
+    template: str = Field(default="python", description="Sandbox template. Supported values: 'python' (Python environment), 'node'/'nodejs'/'javascript' (Node.js environment)"),
     session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
     flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (MSB_DEFAULT_FLAVOR)"),
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
