@@ -223,7 +223,6 @@ def start_docker_server():
         # Override sys.argv to pass the correct arguments
         sys.argv = [
             'mcp-server',
-            '--transport', 'streamable-http',
             '--port', os.getenv('MCP_SERVER_PORT', '8775'),
             '--host', os.getenv('MCP_SERVER_HOST', 'localhost'),
         ]

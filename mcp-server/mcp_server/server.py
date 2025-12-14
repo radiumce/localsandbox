@@ -7,14 +7,11 @@ replacing the custom implementation with a standards-compliant solution.
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import Field, ConfigDict
-import mcp.types as types
 
 from wrapper.wrapper import MicrosandboxWrapper
 
@@ -50,126 +47,44 @@ class AppContext:
     wrapper: MicrosandboxWrapper
 
 
-# Global wrapper instance - managed at process level, independent of FastMCP lifespan
+# Global wrapper instance
 _global_wrapper: Optional[MicrosandboxWrapper] = None
 _wrapper_lock = asyncio.Lock()
-_wrapper_initialized = False
-_shutdown_registered = False
-_shutdown_in_progress = False
 
 
 async def get_or_create_wrapper() -> MicrosandboxWrapper:
     """Get or create the global wrapper instance."""
-    global _global_wrapper, _wrapper_initialized, _shutdown_registered
+    global _global_wrapper
     
     async with _wrapper_lock:
         if _global_wrapper is None:
-            logger.info("Creating and starting global MicrosandboxWrapper instance (process-level)")
+            logger.info("Creating and starting MicrosandboxWrapper")
             _global_wrapper = MicrosandboxWrapper()
             await _global_wrapper.start()
-            _wrapper_initialized = True
-            logger.info("Global MicrosandboxWrapper started successfully - orphan cleanup and resource management are now active")
+            logger.info("MicrosandboxWrapper started successfully")
             
-            # Register process-level atexit handler only once
-            # Signal handlers are managed by main.py
-            if not _shutdown_registered:
-                import atexit
-                
-                def sync_shutdown():
-                    """Synchronous wrapper for shutdown_wrapper."""
-                    global _shutdown_in_progress
-                    if _shutdown_in_progress:
-                        return  # Avoid duplicate shutdown - signal handler already handled it
-                    
-                    if _global_wrapper is not None and _global_wrapper.is_started():
-                        _shutdown_in_progress = True
-                        logger.info("Process exit detected - shutting down MicrosandboxWrapper")
-                        try:
-                            # Use wrapper's emergency shutdown method
-                            logger.info("Process exit detected, using wrapper emergency shutdown")
-                            shutdown_result = _global_wrapper.emergency_shutdown_sync()
-                            logger.info(f"Emergency shutdown completed with status: {shutdown_result['status']}")
-                        except Exception as e:
-                            # Suppress errors during process exit to avoid noise
-                            logger.debug(f"Error during process exit wrapper shutdown: {e}")
-                
-                # Register only atexit handler - signals handled by main.py
-                atexit.register(sync_shutdown)
-                _shutdown_registered = True
-                logger.info("Process-level atexit handler registered for MicrosandboxWrapper")
+            # Register atexit handler for cleanup on process exit
+            import atexit
+            atexit.register(_shutdown_on_exit)
         
         return _global_wrapper
 
 
-async def _force_shutdown_wrapper() -> None:
-    """Force shutdown the global wrapper instance - used by process exit handlers."""
+def _shutdown_on_exit():
+    """Cleanup handler called on process exit."""
     global _global_wrapper
     
-    if _global_wrapper is not None:
+    if _global_wrapper is not None and _global_wrapper.is_started():
         try:
-            logger.info("Force shutting down global MicrosandboxWrapper")
-            await _global_wrapper.stop()
-            logger.info("Global MicrosandboxWrapper force shutdown complete")
-        except Exception as e:
-            logger.error(f"Error during force shutdown: {e}")
-        finally:
-            _global_wrapper = None
-
-
-
-
-
-async def shutdown_wrapper() -> None:
-    """Shutdown the global wrapper instance - no-op for process-level management."""
-    # For process-level management, we don't shutdown on FastMCP lifespan events
-    # The wrapper will be shutdown when the process exits
-    logger.debug("shutdown_wrapper() called - ignoring due to process-level management")
-    pass
-
-
-def shutdown_wrapper_sync() -> None:
-    """Synchronously shutdown the global wrapper instance - for signal handlers."""
-    global _global_wrapper, _shutdown_in_progress
-    
-    if _shutdown_in_progress:
-        return  # Avoid duplicate shutdown
-    
-    _shutdown_in_progress = True
-    logger.info("Signal handler: shutting down MicrosandboxWrapper")
-    
-    try:
-        # Use wrapper's emergency shutdown method which respects existing cleanup logic
-        if _global_wrapper is not None:
+            logger.info("Process exit - shutting down MicrosandboxWrapper")
             shutdown_result = _global_wrapper.emergency_shutdown_sync()
-            logger.info(f"Signal handler: emergency shutdown completed with status: {shutdown_result['status']}")
-            _global_wrapper = None
-        else:
-            logger.debug("Signal handler: wrapper not initialized, nothing to shutdown")
-            
-    except Exception as e:
-        logger.error(f"Error during signal handler wrapper shutdown: {e}")
+            logger.info(f"Shutdown completed: {shutdown_result['status']}")
+        except Exception as e:
+            logger.debug(f"Error during shutdown: {e}")
 
 
-# Create MCP server with lifespan management for wrapper initialization
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def mcp_lifespan(app):
-    """Lifespan manager for FastMCP - does NOT initialize wrapper (session-level, called for each MCP connection)."""
-    logger.debug("FastMCP lifespan started (session-level)")
-    
-    # DO NOT initialize wrapper here - this is called for each MCP session/connection
-    # Wrapper initialization should happen at process level instead
-    
-    yield
-    
-    logger.debug("FastMCP lifespan ending (session-level)")
-    # No wrapper management - wrapper is managed at process level
-
-mcp = FastMCP("Microsandbox Server", lifespan=mcp_lifespan)
-
-
-# Direct parameter definitions - no wrapper models needed
+# Create MCP server
+mcp = FastMCP("Microsandbox Server")
 
 
 # Tool implementations using the official SDK
