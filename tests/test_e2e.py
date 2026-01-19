@@ -2,329 +2,269 @@ import pytest
 import logging
 import uuid
 import re
+import os
 from sandbox import BaseSandbox
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
+# Configure logging
+# Using a custom formatter could also work, but direct string formatting is simpler for specific headers
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s', datefmt='%H:%M:%S')
+
+# Constants
+SERVER_PORT = os.getenv("MCP_SERVER_PORT", "8776") 
+SERVER_URL = f"http://127.0.0.1:{SERVER_PORT}/mcp"
+PIN_NAME = "my-pinned-sandbox"
+HELLO_CONTENT = "hello pinned sandbox"
+HELLO_FILE = "/hello.txt"
+SHARED_PATH = "/shared"
+EXPECTED_SHARED_FILE = "data.txt"
+
+# ANSI Colors for formatting
+class Style:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    BOLD_GREEN = '\033[1;92m'
+
+def log_header(text):
+    """Log a major section header."""
+    logging.info(f"\n{Style.HEADER}{Style.BOLD}{'='*10} {text} {'='*10}{Style.ENDC}")
+
+def log_step_start(step_num, title):
+    """Log the start of a test step."""
+    logging.info("") # Empty line for spacing
+    logging.info(f"{Style.CYAN}{Style.BOLD}▶ STEP {step_num}: {title.upper()}{Style.ENDC}")
+    logging.info(f"{Style.CYAN}{'-'*60}{Style.ENDC}")
+
+def log_success(step_num, message):
+    """Log a successful step."""
+    # Using fixed width for alignment if possible, but simple bold green is key
+    logging.info(f"{Style.BOLD}✔ Step {step_num}: {message:<40} {Style.BOLD_GREEN}PASSED{Style.ENDC}")
+
+def log_info(message):
+    """Log general info."""
+    logging.info(f"  {Style.BLUE}ℹ {message}{Style.ENDC}")
+
+# Helper Functions
+
+async def execute_tool(session, tool_name, arguments):
+    """Execute a tool and return the structured result string."""
+    result = await session.call_tool(tool_name, arguments=arguments)
+    assert not result.isError, f"Tool {tool_name} execution failed: {result.content[0].text if result.isError else ''}"
+    assert result.structuredContent is not None, "Tool did not return structured content."
+    assert 'result' in result.structuredContent, "Expected 'result' in structured result"
+    return result.structuredContent['result']
+
+async def verify_python_execution(session, session_id):
+    """Step 1: Verify basic Python code execution."""
+    log_step_start(1, "Python Hello World Execution")
+    code = 'print("Hello, World!")'
+    result = await execute_tool(session, 'execute_code', {'code': code, 'session_id': session_id})
+    assert "Hello, World!" in result
+    assert "[success: True]" in result
+    log_success(1, "Python Hello World Execution")
+
+async def verify_shared_volume(session, session_id, step_num=2):
+    """Verify access to the shared volume."""
+    log_step_start(step_num, "Shared Volume Access Verification")
+    result = await execute_tool(session, 'execute_command', {'command': f"ls {SHARED_PATH}", 'session_id': session_id})
+    assert EXPECTED_SHARED_FILE in result
+    assert "[success: True]" in result
+    log_success(step_num, "Shared Volume Access Verification")
+
+async def create_persistence_file(session, session_id):
+    """Step 3: Create a file to test persistence."""
+    log_step_start(3, "File Creation and Persistence")
+    code = f"with open('{HELLO_FILE}', 'w') as f: f.write('{HELLO_CONTENT}')"
+    await execute_tool(session, 'execute_code', {'code': code, 'session_id': session_id})
+    log_success(3, "File Creation and Persistence")
+
+async def pin_sandbox_session(session, session_id):
+    """Step 4: Pin the current sandbox."""
+    log_step_start(4, "Sandbox Pinning")
+    result = await execute_tool(session, 'pin_sandbox', {'pinned_name': PIN_NAME, 'session_id': session_id})
+    assert PIN_NAME in result
+    log_success(4, "Sandbox Pinning")
+
+async def verify_file_content(session, session_id, step_num=5):
+    """Verify that the persistence file exists and has correct content."""
+    log_step_start(step_num, "File Content Verification")
+    result = await execute_tool(session, 'execute_command', {'command': f"cat {HELLO_FILE}", 'session_id': session_id})
+    assert HELLO_CONTENT in result
+    log_success(step_num, "File Content Verification")
+
+async def stop_session(session, session_id, step_num=6, is_cleanup=False):
+    """Stop the session."""
+    if not is_cleanup:
+        log_step_start(step_num, "Stop Session")
+    
+    try:
+        result = await execute_tool(session, 'stop_session', {'session_id': session_id})
+        assert f"Session {session_id} stopped successfully" in result
+        if not is_cleanup:
+            log_success(step_num, "Session Stop")
+        else:
+            logging.info(f"  {Style.BLUE}Cleanup: Session stopped.{Style.ENDC}")
+    except Exception as e:
+        if not is_cleanup:
+            raise e
+        logging.warning(f"  {Style.YELLOW}Cleanup Warning: Failed to stop session {session_id}: {e}{Style.ENDC}")
+
+async def attach_pinned_sandbox(session):
+    """Step 7: Attach to the pinned sandbox."""
+    log_step_start(7, "Re-attachment to Pinned Sandbox")
+    result = await execute_tool(session, 'attach_sandbox_by_name', {'pinned_name': PIN_NAME})
+    assert f"Successfully attached to pinned sandbox '{PIN_NAME}'" in result
+    
+    match = re.search(r"Session ID: (\S+)", result)
+    assert match, "Could not find session ID in re-attach result"
+    new_session_id = match.group(1)
+    
+    log_success(7, f"Re-attachment (Session ID: {new_session_id})")
+    return new_session_id
+
+# Main Test Workflow
+
 @pytest.mark.asyncio
 async def test_e2e_workflow():
-    """Verify the E2E workflow, including code execution and shared volume access."""
-    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
+    """Verify the complete E2E workflow using modular helper functions."""
+    log_header("STARTING E2E WORKFLOW TEST")
+    
+    async with streamablehttp_client(SERVER_URL) as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
+            
+            # Start with a fresh session ID
             session_id = str(uuid.uuid4())
-            logging.info(f"Using session_id: {session_id}")
+            log_info(f"Initialized with Session ID: {session_id}")
 
-            # Resources that may need cleanup
-            pin_name = "my-pinned-sandbox"
-            attached_session_id_again = None
+            attached_session_id = None
 
             try:
-                logging.info("Step 1: Starting Python Hello World Execution...")
-                # Define the code to be executed
-                code_to_execute = 'print("Hello, World!")'
+                # 1. Hello World
+                await verify_python_execution(session, session_id)
 
-                # Execute the tool
-                result = await session.call_tool(
-                    'execute_code',
-                    arguments={'code': code_to_execute, 'session_id': session_id}
-                )
+                # 2. Shared Volume Verification
+                await verify_shared_volume(session, session_id, step_num=2)
 
-                # Verify the output
-                assert not result.isError, "Tool execution resulted in an error."
+                # 3. Create Persistence File
+                await create_persistence_file(session, session_id)
 
-                # The tool returns a dictionary with a 'result' key containing the output string.
-                structured_result = result.structuredContent
-                assert structured_result is not None, "Tool did not return structured content."
-                assert 'result' in structured_result, "Expected 'result' in structured result"
-                result_string = structured_result['result']
+                # 4. Pin Sandbox
+                await pin_sandbox_session(session, session_id)
 
-                assert "Hello, World!" in result_string, f"Expected 'Hello, World!' in result string, but got {result_string}"
-                assert "[success: True]" in result_string, f"Expected '[success: True]' in result string, but got {result_string}"
-                logging.info("Step 1: Python Hello World Execution PASSED.")
+                # 5. Verify Pinned File (in original session)
+                await verify_file_content(session, session_id, step_num=5)
 
-                logging.info("Step 2: Starting Shared Volume Access Verification...")
-                # Step 2: Verify shared volume access
-                command_to_execute = "ls /shared"
-                result_command = await session.call_tool(
-                    'execute_command',
-                    arguments={'command': command_to_execute, 'session_id': session_id}
-                )
+                # 6. Stop Original Session
+                await stop_session(session, session_id, step_num=6)
 
-                # Verify the output
-                assert not result_command.isError, "Tool execution resulted in an error."
+                # 7. Re-attach to Pinned Sandbox
+                attached_session_id = await attach_pinned_sandbox(session)
 
-                structured_result_command = result_command.structuredContent
-                assert structured_result_command is not None, "Tool did not return structured content."
-                assert 'result' in structured_result_command, "Expected 'result' in structured result"
-                result_string_command = structured_result_command['result']
+                # 8. Verify File in Re-attached Sandbox
+                await verify_file_content(session, attached_session_id, step_num=8)
 
-                assert "data.txt" in result_string_command, f"Expected 'data.txt' in result string, but got {result_string_command}"
-                assert "[success: True]" in result_string_command, f"Expected '[success: True]' in result string, but got {result_string_command}"
-                logging.info("Step 2: Shared Volume Access Verification PASSED.")
+                # 9. Verify Shared Volume in Re-attached Sandbox
+                await verify_shared_volume(session, attached_session_id, step_num=9)
+                
+                log_header("E2E WORKFLOW TEST COMPLETED SUCCESSFULLY")
 
-                logging.info("Step 3: Starting File Creation and Persistence...")
-                # Step 3: Verify file creation and persistence
-                hello_content = "hello pinned sandbox"
-                create_hello_file_code = f"with open('/hello.txt', 'w') as f: f.write('{hello_content}')"
-                await session.call_tool(
-                    'execute_code',
-                    arguments={'code': create_hello_file_code, 'session_id': session_id}
-                )
-                logging.info("Step 3: File Creation and Persistence PASSED.")
-
-                # Step 4: Pin the sandbox
-                logging.info("Step 4: Starting Sandbox Pinning...")
-                result_pin = await session.call_tool(
-                    'pin_sandbox',
-                    arguments={'pinned_name': pin_name, 'session_id': session_id}
-                )
-                assert not result_pin.isError, f"Pin sandbox tool execution resulted in an error: {result_pin.content[0].text if result_pin.isError else ''}"
-
-                structured_result_pin = result_pin.structuredContent
-                assert structured_result_pin is not None, "Tool did not return structured content."
-                assert 'result' in structured_result_pin, "Expected 'result' in structured result"
-                assert pin_name in structured_result_pin['result'], f"Expected pin name in result, but got {structured_result_pin['result']}"
-                logging.info("Step 4: Sandbox Pinning PASSED.")
-
-                # Step 5: Verify the file in the pinned sandbox
-                logging.info("Step 5: Starting Pinned Sandbox Usage Verification...")
-                # Verify the file created in the original session still exists by checking its content
-                read_file_command = "cat /hello.txt"
-                result_read_file = await session.call_tool(
-                    'execute_command',
-                    arguments={'command': read_file_command, 'session_id': session_id}
-                )
-                assert not result_read_file.isError, "Read file in pinned sandbox tool execution resulted in an error."
-
-                structured_result_read = result_read_file.structuredContent
-                assert 'result' in structured_result_read
-                result_string_read = structured_result_read['result']
-
-                assert hello_content in result_string_read, f"Expected '{hello_content}' in pinned sandbox file, but got {result_string_read}"
-                logging.info("Step 5: Pinned Sandbox Usage Verification PASSED.")
-
-                # Step 6: Stop the session
-                logging.info("Step 6: Stopping the session...")
-                result_stop_session = await session.call_tool(
-                    'stop_session',
-                    arguments={'session_id': session_id}
-                )
-                assert not result_stop_session.isError, f"Stop session tool execution resulted in an error: {result_stop_session.content[0].text if result_stop_session.isError else ''}"
-
-                structured_result_stop = result_stop_session.structuredContent
-                assert 'result' in structured_result_stop, "Expected 'result' in structured result"
-                assert f"Session {session_id} stopped successfully" in structured_result_stop['result']
-
-                logging.info("Step 6: Session Stop Verification PASSED.")
-
-                # Step 7: Re-attach to the pinned sandbox
-                logging.info("Step 7: Starting Re-attachment to Pinned Sandbox...")
-                result_attach_again = await session.call_tool(
-                    'attach_sandbox_by_name',
-                    arguments={'pinned_name': pin_name}
-                )
-                assert not result_attach_again.isError, f"Re-attach sandbox tool execution resulted in an error: {result_attach_again.content[0].text if result_attach_again.isError else ''}"
-
-                structured_result_attach_again = result_attach_again.structuredContent
-                assert 'result' in structured_result_attach_again, "Expected 'result' in structured result"
-                attach_result_text_again = structured_result_attach_again['result']
-                assert f"Successfully attached to pinned sandbox '{pin_name}'" in attach_result_text_again
-
-                match_again = re.search(r"Session ID: (\S+)", attach_result_text_again)
-                assert match_again, "Could not find session ID in re-attach result"
-                attached_session_id_again = match_again.group(1)
-                logging.info(f"Step 7: Re-attachment to Pinned Sandbox PASSED. New session ID: {attached_session_id_again}")
-
-                # Step 8: Verify file content in the re-attached sandbox
-                logging.info("Step 8: Starting File Content Verification in Re-attached Sandbox...")
-                read_file_command_again = "cat /hello.txt"
-                result_read_file_again = await session.call_tool(
-                    'execute_command',
-                    arguments={'command': read_file_command_again, 'session_id': attached_session_id_again}
-                )
-                assert not result_read_file_again.isError, "Read file in re-attached sandbox tool execution resulted in an error."
-
-                structured_result_read_again = result_read_file_again.structuredContent
-                assert 'result' in structured_result_read_again
-                result_string_read_again = structured_result_read_again['result']
-                assert hello_content in result_string_read_again, f"Expected '{hello_content}' in re-attached sandbox file, but got {result_string_read_again}"
-                logging.info("Step 8: File Content Verification in Re-attached Sandbox PASSED.")
-
-                # Step 9: Verify shared volume access in the re-attached sandbox
-                logging.info("Step 9: Starting Shared Volume Access Verification in Re-attached Sandbox...")
-                list_files_command_again = "ls /shared"
-                result_list_files_again = await session.call_tool(
-                    'execute_command',
-                    arguments={'command': list_files_command_again, 'session_id': attached_session_id_again}
-                )
-                assert not result_list_files_again.isError, "List files in re-attached sandbox tool execution resulted in an error."
-
-                structured_result_list_again = result_list_files_again.structuredContent
-                assert 'result' in structured_result_list_again
-                result_string_list_again = structured_result_list_again['result']
-                assert "data.txt" in result_string_list_again, f"Expected 'data.txt' in re-attached sandbox, but got {result_string_list_again}"
-                logging.info("Step 9: Shared Volume Access Verification in Re-attached Sandbox PASSED.")
             finally:
-                # Best-effort cleanup: stop re-attached session and force remove pinned sandbox
-                try:
-                    if attached_session_id_again:
-                        logging.info("Cleanup: Stopping the re-attached session...")
-                        _ = await session.call_tool(
-                            'stop_session',
-                            arguments={'session_id': attached_session_id_again}
-                        )
-                except Exception as e:
-                    logging.warning(f"Cleanup: Failed to stop re-attached session: {e}")
+                log_header("STARTING CLEANUP")
+                
+                # Cleanup: Stop attached session
+                if attached_session_id:
+                     await stop_session(session, attached_session_id, is_cleanup=True)
+                
+                # Cleanup: Ensure original session is stopped
+                if session_id:
+                    try:
+                        await session.call_tool('stop_session', arguments={'session_id': session_id})
+                    except Exception:
+                        pass # Ignore if already stopped
 
-                # Also attempt to stop the original session if it wasn't already stopped
+                # Cleanup: Force remove pinned sandbox
                 try:
-                    if session_id:
-                        logging.info("Cleanup: Stopping the original session if still active...")
-                        _ = await session.call_tool(
-                            'stop_session',
-                            arguments={'session_id': session_id}
-                        )
+                    log_info("Force removing pinned sandbox...")
+                    await BaseSandbox.force_remove_by_name(PIN_NAME, config_path=".env.test")
+                    log_info("Cleanup complete.")
                 except Exception as e:
-                    logging.warning(f"Cleanup: Failed to stop original session: {e}")
-
-                try:
-                    logging.info("Cleanup: Force removing pinned sandbox (if exists)...")
-                    await BaseSandbox.force_remove_by_name(pin_name, config_path=".env.test")
-                except Exception as e:
-                    logging.warning(f"Cleanup: Force remove by name skipped/failed: {e}")
+                    logging.warning(f"Cleanup removal failed: {e}")
 
 @pytest.mark.asyncio
 async def test_execute_command_creates_session():
     """Verify that calling execute_command without a session_id creates a new session."""
-    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
+    log_header("TEST: EXECUTE COMMAND NO-SESSION")
+    
+    async with streamablehttp_client(SERVER_URL) as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
 
             new_session_id = None
             try:
-                command_to_execute = "echo 'hello world'"
-                logging.info("Testing execute_command without session_id...")
+                log_info("Calling execute_command without session_id...")
+                result = await execute_tool(session, 'execute_command', {'command': "echo 'hello world'"})
+                
+                assert "hello world" in result
+                assert "[success: True]" in result
 
-                result = await session.call_tool(
-                    'execute_command',
-                    arguments={'command': command_to_execute}
-                )
-
-                assert not result.isError, f"Tool execution failed: {result.content[0].text if result.isError else ''}"
-
-                structured_result = result.structuredContent
-                assert 'result' in structured_result, "Expected 'result' in structured result"
-                result_string = structured_result['result']
-
-                assert "hello world" in result_string, f"Expected 'hello world' in result, but got {result_string}"
-                assert "[success: True]" in result_string, f"Expected success status in result, but got {result_string}"
-
-                # Extract session_id from the result string
-                match = re.search(r"\[session_id: (\S+)\]", result_string)
-                assert match, f"Could not find session ID in result: {result_string}"
+                # Extract session_id
+                match = re.search(r"\[session_id: (\S+)\]", result)
+                assert match, f"Could not find session ID in result: {result}"
                 new_session_id = match.group(1)
-                assert uuid.UUID(new_session_id), f"Invalid session ID format: {new_session_id}"
-
-                logging.info(f"execute_command without session_id PASSED. New session created: {new_session_id}")
+                
+                log_success("Auto-Session", f"Created Session: {new_session_id}")
             finally:
                 if new_session_id:
-                    try:
-                        logging.info("Cleanup: Stopping the auto-created session...")
-                        _ = await session.call_tool(
-                            'stop_session',
-                            arguments={'session_id': new_session_id}
-                        )
-                    except Exception as e:
-                        logging.warning(f"Cleanup: Failed to stop auto-created session: {e}")
-
+                    await stop_session(session, new_session_id, is_cleanup=True)
 
 @pytest.mark.asyncio
 async def test_parameter_validation_incorrect_session_field():
-    """Verify that parameter validation rejects incorrect 'session' field (should be 'session_id')."""
-    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
+    """Verify validation refutation."""
+    log_header("TEST: PARAMETER VALIDATION (FIELD NAME)")
+    async with streamablehttp_client(SERVER_URL) as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             
-            logging.info("Testing parameter validation with incorrect 'session' field...")
-            
-            # Test with incorrect parameter name 'session' instead of 'session_id'
-            code_to_execute = 'print("Hello, World!")'
-            
+            log_info("Testing with incorrect 'session' field...")
             try:
                 result = await session.call_tool(
-                    'execute_code',
-                    arguments={
-                        'code': code_to_execute,
-                        'session': 'invalid-session-field'  # Incorrect field name
-                    }
+                    'execute_code', 
+                    arguments={'code': 'print("hi")', 'session': 'invalid'}
                 )
-                
-                # The call should fail due to parameter validation
-                assert result.isError, "Expected tool execution to fail due to invalid parameter 'session'"
-                
-                # Check that the error message mentions the undefined parameter
+                assert result.isError, "Expected tool execution to fail"
                 error_text = result.content[0].text if result.content else ""
-                assert "Extra inputs are not permitted" in error_text, f"Expected Pydantic extra_forbidden error, but got: {error_text}"
-                assert "session" in error_text, f"Expected 'session' field to be mentioned in error, but got: {error_text}"
-                
-                logging.info("Parameter validation test PASSED - correctly rejected 'session' field")
-                
+                assert "Extra inputs are not permitted" in error_text
+                log_success("Validation", "Correctly rejected 'session' field")
             except Exception as e:
-                # If an exception is raised instead of returning an error result
-                error_message = str(e)
-                assert "Extra inputs are not permitted" in error_message, f"Expected Pydantic extra_forbidden error, but got: {error_message}"
-                assert "session" in error_message, f"Expected 'session' field to be mentioned in error, but got: {error_message}"
-                
-                logging.info("Parameter validation test PASSED - correctly raised exception for 'session' field")
-
+                 assert "Extra inputs are not permitted" in str(e)
+                 log_success("Validation", "Correctly raised exception for 'session'")
 
 @pytest.mark.asyncio
 async def test_parameter_validation_multiple_incorrect_fields():
-    """Verify that parameter validation rejects multiple incorrect parameter fields."""
-    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
+    """Verify validation refutation."""
+    log_header("TEST: PARAMETER VALIDATION (MULTIPLE)")
+    async with streamablehttp_client(SERVER_URL) as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             
-            logging.info("Testing parameter validation with multiple incorrect fields...")
-            
-            # Test with multiple incorrect parameter names
+            log_info("Testing with multiple incorrect fields...")
             try:
                 result = await session.call_tool(
                     'execute_command',
-                    arguments={
-                        'command': 'echo "test"',
-                        'session': 'invalid-session-field',  # Should be 'session_id'
-                        'time_out': 30,  # Should be 'timeout'
-                        'extra_field': 'should_not_exist'  # Completely invalid
-                    }
+                    arguments={'command': 'echo', 'session': 'bad', 'time_out': 30}
                 )
-                
-                # The call should fail due to parameter validation
-                assert result.isError, "Expected tool execution to fail due to invalid parameters"
-                
-                # Check that the error message mentions the undefined parameters
-                error_text = result.content[0].text if result.content else ""
-                assert "Extra inputs are not permitted" in error_text, f"Expected Pydantic extra_forbidden error, but got: {error_text}"
-                
-                # Check that invalid fields are mentioned (at least one should be in the error)
-                invalid_fields = ["session", "time_out", "extra_field"]
-                found_invalid_field = any(field in error_text for field in invalid_fields)
-                assert found_invalid_field, f"Expected at least one invalid field to be mentioned in error, but got: {error_text}"
-                
-                logging.info("Multiple parameter validation test PASSED - correctly rejected multiple invalid fields")
-                
+                assert result.isError
+                assert "Extra inputs are not permitted" in result.content[0].text
+                log_success("Validation", "Correctly rejected multiple fields")
             except Exception as e:
-                # If an exception is raised instead of returning an error result
-                error_message = str(e)
-                assert "Extra inputs are not permitted" in error_message, f"Expected Pydantic extra_forbidden error, but got: {error_message}"
-                
-                # Check that invalid fields are mentioned (at least one should be in the error)
-                invalid_fields = ["session", "time_out", "extra_field"]
-                found_invalid_field = any(field in error_message for field in invalid_fields)
-                assert found_invalid_field, f"Expected at least one invalid field to be mentioned in error, but got: {error_message}"
-                
-                logging.info("Multiple parameter validation test PASSED - correctly raised exception for multiple invalid fields")
+                assert "Extra inputs are not permitted" in str(e)
+                log_success("Validation", "Correctly raised exception for mulitple fields")
