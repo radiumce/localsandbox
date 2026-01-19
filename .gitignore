@@ -64,3 +64,5 @@ python/.python-version
 
 .env.docker
 .env
+
+/logs
