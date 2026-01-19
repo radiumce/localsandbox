@@ -5,7 +5,7 @@ A Model Context Protocol (MCP) server that provides secure code execution capabi
 ## Features
 
 - **MCP Protocol Support**: Full implementation of the Model Context Protocol for seamless integration with AI assistants
-- **Multiple Transport Options**: Support for stdio, HTTP streaming, and Server-Sent Events (SSE) transports
+- **Transport Options**: Support for HTTP streaming transport
 - **Secure Sandboxing**: Execute code in isolated Docker containers for maximum security
 - **Language Support**: Support for multiple programming languages including Python, JavaScript, and more
 - **Resource Management**: Intelligent resource allocation and cleanup
@@ -14,16 +14,25 @@ A Model Context Protocol (MCP) server that provides secure code execution capabi
 ## Installation
 
 
+### 1. From Source (Recommended)
+
+This project uses modern Python packaging.
+
+**Using `install.sh` (Auto-setup):**
 ```bash
-git clone <repository-url>
-cd <repository-name>
-pip install .
+./install.sh
 ```
+This script detects if you have `uv` installed (recommended) or falls back to standard `pip`. It automatically manages virtual environments.
 
-For development installation:
-
+**Manual Installation:**
 ```bash
-pip install -e ".[dev]"
+# Using uv (Recommended)
+uv sync
+
+# Using pip
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
 ```
 
 ## Quick Start
@@ -35,7 +44,7 @@ cd <repository-name>
 cp .env.example .env.docker
 
 ```bash
-start-localsandbox
+lsb start
 ```
 
 This will:
@@ -52,18 +61,18 @@ The server can be configured through command-line arguments or environment varia
 
 ### Command Line Options
 
-- `--transport`: Transport type (stdio, streamable-http, sse) - default: stdio
-- `--host`: Server host address for HTTP transports - default: localhost
-- `--port`: Server port number for HTTP transports - default: 8775
-- `--enable-cors`: Enable CORS support for HTTP transports
+- `--transport`: Transport type (streamable-http)
+- `--host`: Server host address - default: localhost
+- `--port`: Server port number - default: 8775
+- `--enable-cors`: Enable CORS support
 - `--log-level`: Set logging level (DEBUG, INFO, WARNING, ERROR) - default: INFO
 
 ### Environment Variables
 
 #### Basic MCP Server Configuration
-- `MCP_SERVER_HOST`: Server host address for HTTP transports
-- `MCP_SERVER_PORT`: Server port number for HTTP transports  
-- `MCP_ENABLE_CORS`: Enable CORS support for HTTP transports
+- `MCP_SERVER_HOST`: Server host address
+- `MCP_SERVER_PORT`: Server port number
+- `MCP_ENABLE_CORS`: Enable CORS support
 
 #### Docker Sandbox Configuration
 - `CONTAINER_RUNTIME`: Container runtime (docker or podman)
@@ -76,7 +85,7 @@ The server can be configured through command-line arguments or environment varia
 
 ### LocalSandbox Configuration File
 
-The `start-localsandbox` command uses a `.env.docker` file for configuration. Example:
+The `lsb start` command uses a `.env.docker` file for configuration. Example:
 
 ```bash
 # MCP Server Configuration
@@ -122,7 +131,7 @@ pip install .
 3. Start the MCP server using LocalSandbox in a separate terminal:
 
 ```bash
-start-localsandbox --env-file .env.test
+lsb start --env-file .env.test
 ```
 
 4. From the project root, run the E2E test module:
@@ -144,12 +153,11 @@ The project consists of several key components:
 - **Microsandbox Wrapper**: Abstraction layer for sandbox operations
 - **Transport Layer**: Support for multiple communication protocols
 - **Resource Management**: Container lifecycle and resource allocation
-- **Session Management**: Handle multiple concurrent sessions
 
 ## Requirements
 
 - Python 3.10+
-- Docker (for sandbox execution)
+- Docker (for sandbox execution) (or Podman)
 - Network access (for HTTP transports)
 
 ## License

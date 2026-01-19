@@ -9,69 +9,47 @@
 
 ## 安装方法
 
-### 1. 从源码安装（推荐）
+### 1. 自动安装 (推荐)
 
-```bash
-# 在项目根目录下
-pip install .
-
-# 开发模式安装（可编辑）
-pip install -e .
-
-# 包含开发依赖
-pip install -e ".[dev]"
-```
-
-### 2. 使用安装脚本
+我们提供了一个现代化的安装脚本，会自动检测环境并安装：
 
 ```bash
 ./install.sh
 ```
+该脚本会自动检测 `uv` (推荐) 或使用 `pip`，并处理虚拟环境。
 
-### 3. 构建分发包
+### 2. 手动安装
 
+使用 `uv`:
 ```bash
-# 构建 wheel 和 tar.gz
-python -m build
+uv sync --dev
+source .venv/bin/activate
+```
 
-# 安装构建的包
-pip install dist/microsandbox_mcp_server-1.0.0-py3-none-any.whl
+使用 `pip`:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
 ```
 
 ## 可用命令
 
 安装后，以下命令将可用：
 
-### 1. `start-localsandbox`
-使用 LocalSandbox 配置启动 MCP 服务器：
+### 1. `lsb`
+
+主命令行工具，支持以下子命令：
+
+- `lsb start`: 启动服务器（推荐）
+- `lsb stop`: 停止服务器
+
+示例：
 ```bash
-start-localsandbox
+lsb start
+lsb start --env-file .env.prod
+lsb stop
 ```
-
-这个命令会：
-- 自动查找并加载 `.env.local` 文件
-- 检查 Docker 可用性
-- 拉取所需的 Docker 镜像
-- 设置共享目录
-- 启动 HTTP 传输的 MCP 服务器
-
-选项：
-```bash
-start-localsandbox --env-file /path/to/.env.local  # 指定环境文件
-start-localsandbox --skip-docker-check             # 跳过 Docker 检查
-start-localsandbox --skip-image-pull               # 跳过镜像拉取
-```
-
-### 2. `microsandbox-mcp-server`
-标准 MCP 服务器启动命令：
-```bash
-microsandbox-mcp-server                           # stdio 传输
-microsandbox-mcp-server --transport streamable-http --port 8775  # HTTP 传输
-microsandbox-mcp-server --transport sse --enable-cors            # SSE 传输
-```
-
-### 3. `mcp-server`
-`microsandbox-mcp-server` 的简短别名。
 
 ## 环境配置
 
@@ -91,7 +69,7 @@ vim .env.local
 
 ### 配置查找顺序
 
-`start-localsandbox` 命令按以下顺序查找 `.env.local` 文件：
+`lsb start` 命令按以下顺序查找 `.env.local` 文件：
 1. 当前目录的 `.env.local`
 2. 当前目录的 `.env.docker`（向后兼容）
 3. `mcp-server/.env.docker`（向后兼容）
@@ -107,8 +85,7 @@ python test_installation.py
 或手动测试：
 ```bash
 # 测试命令可用性
-microsandbox-mcp-server --help
-start-localsandbox --help
+lsb --help
 
 # 测试模块导入
 python -c "import mcp_server; print('OK')"
@@ -124,7 +101,7 @@ python -c "import wrapper; print('OK')"
 ./mcp-server/start_mcp_docker.sh
 ```
 
-新的 `start-localsandbox` 命令提供相同的功能，但更便于使用。
+新的 `lsb start` 命令提供相同的功能，但更便于使用。
 
 ### 环境变量兼容性
 
@@ -164,13 +141,13 @@ mypy .
 1. **命令未找到**
    ```bash
    # 确保 pip 安装路径在 PATH 中
-   pip show -f microsandbox-mcp-server
+   pip show -f localsandbox-mcp-server
    ```
 
 2. **模块导入错误**
    ```bash
    # 重新安装
-   pip uninstall microsandbox-mcp-server
+   pip uninstall localsandbox-mcp-server
    pip install .
    ```
 
@@ -187,7 +164,7 @@ mypy .
 
 启用详细日志：
 ```bash
-MSB_LOG_LEVEL=DEBUG start-mcp-docker
+MSB_LOG_LEVEL=DEBUG lsb start
 ```
 
 ## 文件结构
@@ -207,4 +184,4 @@ microsandbox-mcp-server/
 
 - 查看 [QUICKSTART.md](QUICKSTART.md) 快速开始
 - 查看 [README.md](README.md) 了解详细功能
-- 运行 `start-localsandbox` 启动服务器
+- 运行 `lsb start` 启动服务器

@@ -208,7 +208,7 @@ def setup_logging(
     
     # Get configuration from environment variables
     level = os.getenv('MSB_LOG_LEVEL', level).upper()
-    log_file = log_file or os.getenv('MSB_LOG_FILE')
+    log_file = log_file or os.getenv('MSB_LOG_FILE', 'logs/server.log')
     max_file_size = int(os.getenv('MSB_LOG_MAX_SIZE', str(max_file_size)))
     backup_count = int(os.getenv('MSB_LOG_BACKUP_COUNT', str(backup_count)))
     enable_console = os.getenv('MSB_LOG_CONSOLE', 'true').lower() in ('true', '1', 'yes')

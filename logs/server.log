@@ -1,0 +1,257 @@
+2026-01-19T22:33:06.467290 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:33:06.951643 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:33:06.951740 | INFO     | wrapper      | Starting MCP Server on localhost:8775
+2026-01-19T22:33:07.445272 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:33:07.447500 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:33:07.447575 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:33:07.447614 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:33:07.447646 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:33:07.447684 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:33:07.447781 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:33:07.447884 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:33:07.448460 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:33:07.452247 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:33:07.452438 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:33:07.461198 | INFO     | wrapper      | Server lifespan ending
+2026-01-19T22:33:07.461521 | INFO     | session_manager | Session cleanup loop cancelled after 0 cycles
+2026-01-19T22:33:07.461619 | INFO     | resource_manager | Orphan cleanup loop cancelled after 0 cycles (total orphans cleaned: 0)
+2026-01-19T22:33:07.463039 | INFO     | wrapper      | Starting emergency synchronous shutdown
+2026-01-19T22:33:07.463160 | INFO     | wrapper      | No event loop detected, running full emergency shutdown
+2026-01-19T22:33:07.463406 | INFO     | wrapper      | Starting graceful shutdown with 10.0s timeout
+2026-01-19T22:33:07.463568 | INFO     | resource_manager | Stopping resource manager
+2026-01-19T22:33:07.463641 | INFO     | resource_manager | Resource manager stopped
+2026-01-19T22:33:07.463683 | INFO     | session_manager | Stopping session manager
+2026-01-19T22:33:07.463722 | INFO     | session_manager | Session manager stopped in 0.00s
+2026-01-19T22:33:07.463819 | INFO     | wrapper      | Graceful shutdown completed: status=success, duration=0.00s, components_stopped=2/2
+2026-01-19T22:33:08.019077 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:33:08.287537 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:33:08.287852 | INFO     | wrapper      | Starting MCP Server on localhost:8775
+2026-01-19T22:33:08.303134 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:33:08.305297 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:33:08.305368 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:33:08.305403 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:33:08.305428 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:33:08.305458 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:33:08.305495 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:33:08.305520 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:33:08.306006 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:33:08.308003 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:33:08.308125 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:33:08.313924 | INFO     | wrapper      | Server lifespan ending
+2026-01-19T22:33:08.314165 | INFO     | resource_manager | Orphan cleanup loop cancelled after 0 cycles (total orphans cleaned: 0)
+2026-01-19T22:33:08.314208 | INFO     | session_manager | Session cleanup loop cancelled after 0 cycles
+2026-01-19T22:33:08.315441 | INFO     | wrapper      | Starting emergency synchronous shutdown
+2026-01-19T22:33:08.315494 | INFO     | wrapper      | No event loop detected, running full emergency shutdown
+2026-01-19T22:33:08.315644 | INFO     | wrapper      | Starting graceful shutdown with 10.0s timeout
+2026-01-19T22:33:08.315719 | INFO     | resource_manager | Stopping resource manager
+2026-01-19T22:33:08.315796 | INFO     | resource_manager | Resource manager stopped
+2026-01-19T22:33:08.315841 | INFO     | session_manager | Stopping session manager
+2026-01-19T22:33:08.315874 | INFO     | session_manager | Session manager stopped in 0.00s
+2026-01-19T22:33:08.315971 | INFO     | wrapper      | Graceful shutdown completed: status=success, duration=0.00s, components_stopped=2/2
+2026-01-19T22:36:19.718092 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:36:20.093294 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:36:20.093393 | INFO     | wrapper      | Starting MCP Server on localhost:8776
+2026-01-19T22:36:20.121031 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:36:20.123033 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:36:20.123089 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:36:20.123123 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:36:20.123150 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:36:20.123183 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:36:20.123280 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:36:20.123355 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:36:20.124093 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:36:20.127311 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:36:20.127422 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:37:20.129898 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:37:20.187534 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:37:20.187747 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:37:20.187789 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:38:20.190687 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:38:20.251061 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:38:20.251269 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:38:20.251328 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:39:20.252991 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:39:20.304672 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:39:20.304945 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:39:20.304997 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:40:20.309563 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:40:20.374122 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:40:20.374366 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:40:20.374423 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:41:20.375907 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:41:20.445542 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:41:20.445780 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:41:20.445885 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:42:20.448152 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:42:20.502293 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:42:20.502529 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:42:20.502600 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:43:00.743235 | INFO     | wrapper      | Server lifespan ending
+2026-01-19T22:43:01.019229 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:43:01.405427 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:43:01.405529 | INFO     | wrapper      | Starting MCP Server on localhost:8776
+2026-01-19T22:43:01.432608 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:43:01.434726 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:43:01.434784 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:43:01.434818 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:43:01.434845 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:43:01.434881 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:43:01.434912 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:43:01.434939 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:43:01.435446 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:43:01.438515 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:43:01.438637 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:44:01.441913 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:44:01.511998 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:44:01.512251 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:44:01.512312 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:44:57.902815 | INFO     | wrapper      | Server lifespan ending
+2026-01-19T22:44:58.169192 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:44:58.601069 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:44:58.601166 | INFO     | wrapper      | Starting MCP Server on localhost:8776
+2026-01-19T22:44:58.601831 | INFO     | wrapper      | Route: /mcp -> None
+2026-01-19T22:44:58.601940 | INFO     | wrapper      | Mounted app routes: [Route(path='/mcp', name='StreamableHTTPASGIApp', methods=[])]
+2026-01-19T22:44:58.629347 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:44:58.631494 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:44:58.631559 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:44:58.631593 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:44:58.631621 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:44:58.631657 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:44:58.631686 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:44:58.631713 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:44:58.632250 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:44:58.635145 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:44:58.635233 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:45:33.462561 | INFO     | wrapper      | Server lifespan ending
+2026-01-19T22:45:33.732117 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:45:34.154685 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:45:34.154906 | INFO     | wrapper      | Starting MCP Server on localhost:8776
+2026-01-19T22:45:34.155626 | INFO     | wrapper      | Route:  -> None
+2026-01-19T22:45:34.155742 | INFO     | wrapper      | Mounted app routes: [Route(path='/mcp', name='StreamableHTTPASGIApp', methods=[])]
+2026-01-19T22:45:34.182829 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:45:34.184866 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:45:34.184918 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:45:34.184953 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:45:34.184986 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:45:34.185017 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:45:34.185049 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:45:34.185074 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:45:34.185592 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:45:34.188315 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:45:34.188438 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:45:35.617203 | INFO     | wrapper      | Server lifespan ending
+2026-01-19T22:45:35.617809 | INFO     | session_manager | Session cleanup loop cancelled after 0 cycles
+2026-01-19T22:45:35.618327 | INFO     | resource_manager | Orphan cleanup loop cancelled after 0 cycles (total orphans cleaned: 0)
+2026-01-19T22:45:35.620651 | INFO     | wrapper      | Starting emergency synchronous shutdown
+2026-01-19T22:45:35.620719 | INFO     | wrapper      | No event loop detected, running full emergency shutdown
+2026-01-19T22:45:35.621303 | INFO     | wrapper      | Starting graceful shutdown with 10.0s timeout
+2026-01-19T22:45:35.621513 | INFO     | resource_manager | Stopping resource manager
+2026-01-19T22:45:35.621585 | INFO     | resource_manager | Resource manager stopped
+2026-01-19T22:45:35.621721 | INFO     | session_manager | Stopping session manager
+2026-01-19T22:45:35.621860 | INFO     | session_manager | Session manager stopped in 0.00s
+2026-01-19T22:45:35.622018 | INFO     | wrapper      | Graceful shutdown completed: status=success, duration=0.00s, components_stopped=2/2
+2026-01-19T22:47:38.154776 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:47:38.596574 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:47:38.596683 | INFO     | wrapper      | Starting MCP Server on localhost:8776
+2026-01-19T22:47:38.597353 | INFO     | wrapper      | Route: /mcp -> None
+2026-01-19T22:47:38.597466 | INFO     | wrapper      | Mounted app routes: [Route(path='/mcp', name='StreamableHTTPASGIApp', methods=[])]
+2026-01-19T22:47:38.625762 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:47:38.628077 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:47:38.628157 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:47:38.628196 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:47:38.628230 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:47:38.628267 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:47:38.628297 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:47:38.628324 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:47:38.628875 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:47:38.632051 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:47:38.632194 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:48:38.639902 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:48:38.836247 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:48:38.836484 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:48:38.836531 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:48:50.729226 | INFO     | wrapper      | Server lifespan ending
+2026-01-19T22:48:51.035058 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:48:51.431185 | INFO     | wrapper      | Logging configured - Level: INFO, File: logs/server.log
+2026-01-19T22:48:51.431293 | INFO     | wrapper      | Starting MCP Server on localhost:8776
+2026-01-19T22:48:51.432078 | INFO     | wrapper      | Route:  -> None
+2026-01-19T22:48:51.432306 | INFO     | wrapper      | Mounted app routes: [Route(path='/mcp', name='StreamableHTTPASGIApp', methods=[])]
+2026-01-19T22:48:51.459037 | INFO     | wrapper      | Server lifespan started
+2026-01-19T22:48:51.461194 | INFO     | session_manager | Initialized session manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:48:51.461250 | INFO     | resource_manager | Initialized resource manager with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:48:51.461286 | INFO     | wrapper      | Initialized MicrosandboxWrapper with config: WrapperConfig(session_timeout=180s, max_sessions=5, default_flavor=small, orphan_cleanup_interval=60s, volume_mappings=1 mappings)
+2026-01-19T22:48:51.461313 | INFO     | wrapper      | Starting MicrosandboxWrapper
+2026-01-19T22:48:51.461345 | INFO     | session_manager | Started session manager cleanup task
+2026-01-19T22:48:51.461371 | INFO     | resource_manager | Started resource manager orphan cleanup task
+2026-01-19T22:48:51.461393 | INFO     | wrapper      | MicrosandboxWrapper started successfully
+2026-01-19T22:48:51.461900 | INFO     | wrapper      | Wrapper initialized
+2026-01-19T22:48:51.465167 | INFO     | session_manager | Started session cleanup loop with interval 60s, session timeout 180s
+2026-01-19T22:48:51.465243 | INFO     | resource_manager | Started orphan cleanup loop with interval 60s
+2026-01-19T22:49:51.466740 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:49:51.551089 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:49:51.551364 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:49:51.551439 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:50:30.267753 | INFO     | session_manager | Created managed session 0edc15f0-7208-4020-8f11-c6e6e20183e9 with template=python, flavor=small, sandbox_name=sandbox-20260119_225030_267724
+2026-01-19T22:50:30.267883 | INFO     | session_manager | Created new session 0edc15f0-7208-4020-8f11-c6e6e20183e9
+2026-01-19T22:50:30.267917 | INFO     | wrapper      | Session event: code_execution_started | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:30.268003 | INFO     | session_manager | Creating sandbox for session 0edc15f0-7208-4020-8f11-c6e6e20183e9 with template=python
+2026-01-19T22:50:31.659905 | INFO     | session_manager | Successfully created and started sandbox for session 0edc15f0-7208-4020-8f11-c6e6e20183e9
+2026-01-19T22:50:31.660204 | INFO     | session_manager | Session event: code_execution_started | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:32.605478 | INFO     | session_manager | Session event: code_execution_completed | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:32.606340 | INFO     | wrapper      | Code execution completed: session_id=0edc15f0-7208-4020-8f11-c6e6e20183e9, success=True, time=944ms, session_created=False
+2026-01-19T22:50:32.606426 | INFO     | wrapper      | Session event: code_execution_completed | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:32.669879 | INFO     | wrapper      | Session event: command_execution_started | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:32.885280 | INFO     | wrapper      | Command execution completed: session_id=0edc15f0-7208-4020-8f11-c6e6e20183e9, command=sh, exit_code=0, time=215ms, session_created=False
+2026-01-19T22:50:32.885465 | INFO     | wrapper      | Session event: command_execution_completed | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:32.893969 | INFO     | wrapper      | Session event: code_execution_started | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:32.894081 | INFO     | session_manager | Session event: code_execution_started | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:33.100436 | INFO     | session_manager | Session event: code_execution_completed | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:33.100821 | INFO     | wrapper      | Code execution completed: session_id=0edc15f0-7208-4020-8f11-c6e6e20183e9, success=True, time=206ms, session_created=False
+2026-01-19T22:50:33.100866 | INFO     | wrapper      | Session event: code_execution_completed | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:33.112695 | INFO     | session_manager | Pinning session 0edc15f0-7208-4020-8f11-c6e6e20183e9 with name 'my-pinned-sandbox' (current name: sandbox-20260119_225030_267724)
+2026-01-19T22:50:51.553770 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:50:51.627186 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:50:51.627461 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:50:51.627502 | INFO     | resource_manager | Sandbox event: orphan_sandbox_identified | {"sandbox_name":"my-pinned-sandbox"}
+2026-01-19T22:50:51.627598 | INFO     | resource_manager | Resource event: orphan_cleanup_batch_started
+2026-01-19T22:50:51.931187 | INFO     | session_manager | Successfully pinned session 0edc15f0-7208-4020-8f11-c6e6e20183e9 as 'my-pinned-sandbox'. Container my-pinned-sandbox has been preserved and will not be cleaned up during session timeout.
+2026-01-19T22:50:51.995886 | INFO     | wrapper      | Session event: command_execution_started | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:52.151566 | INFO     | wrapper      | Command execution completed: session_id=0edc15f0-7208-4020-8f11-c6e6e20183e9, command=sh, exit_code=0, time=155ms, session_created=False
+2026-01-19T22:50:52.151805 | INFO     | wrapper      | Session event: command_execution_completed | {"session_id":"0edc15f0-7208-4020-8f11-c6e6e20183e9"}
+2026-01-19T22:50:52.166766 | INFO     | session_manager | Stopping managed session 0edc15f0-7208-4020-8f11-c6e6e20183e9
+2026-01-19T22:51:02.123975 | INFO     | session_manager | Successfully stopped managed session 0edc15f0-7208-4020-8f11-c6e6e20183e9
+2026-01-19T22:51:02.124437 | INFO     | session_manager | Stopped session 0edc15f0-7208-4020-8f11-c6e6e20183e9
+2026-01-19T22:51:02.128841 | INFO     | resource_manager | Successfully cleaned orphan sandbox: default/my-pinned-sandbox
+2026-01-19T22:51:02.129004 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:51:02.129116 | INFO     | resource_manager | Orphan cleanup cycle #2: cleaned 1 orphans in 10.58s
+2026-01-19T22:51:02.153542 | INFO     | session_manager | Attempting to attach to pinned sandbox 'my-pinned-sandbox'
+2026-01-19T22:51:02.592784 | INFO     | session_manager | Created managed session 525ae86f-81b2-449e-bf8c-5e326977ae34 with template=python, flavor=small, sandbox_name=sandbox-20260119_225102_592681
+2026-01-19T22:51:02.592973 | INFO     | session_manager | Successfully created session 525ae86f-81b2-449e-bf8c-5e326977ae34 for pinned sandbox 'my-pinned-sandbox'
+2026-01-19T22:51:02.606050 | INFO     | wrapper      | Session event: command_execution_started | {"session_id":"525ae86f-81b2-449e-bf8c-5e326977ae34"}
+2026-01-19T22:51:02.743655 | INFO     | wrapper      | Command execution completed: session_id=525ae86f-81b2-449e-bf8c-5e326977ae34, command=sh, exit_code=0, time=137ms, session_created=False
+2026-01-19T22:51:02.743852 | INFO     | wrapper      | Session event: command_execution_completed | {"session_id":"525ae86f-81b2-449e-bf8c-5e326977ae34"}
+2026-01-19T22:51:02.772614 | INFO     | wrapper      | Session event: command_execution_started | {"session_id":"525ae86f-81b2-449e-bf8c-5e326977ae34"}
+2026-01-19T22:51:02.903422 | INFO     | wrapper      | Command execution completed: session_id=525ae86f-81b2-449e-bf8c-5e326977ae34, command=sh, exit_code=0, time=130ms, session_created=False
+2026-01-19T22:51:02.903666 | INFO     | wrapper      | Session event: command_execution_completed | {"session_id":"525ae86f-81b2-449e-bf8c-5e326977ae34"}
+2026-01-19T22:51:02.914440 | INFO     | session_manager | Stopping managed session 525ae86f-81b2-449e-bf8c-5e326977ae34
+2026-01-19T22:51:13.600132 | INFO     | session_manager | Successfully stopped managed session 525ae86f-81b2-449e-bf8c-5e326977ae34
+2026-01-19T22:51:13.600712 | INFO     | session_manager | Stopped session 525ae86f-81b2-449e-bf8c-5e326977ae34
+2026-01-19T22:51:13.638129 | WARNING  | session_manager | Attempted to stop non-existent session 0edc15f0-7208-4020-8f11-c6e6e20183e9
+2026-01-19T22:51:14.000909 | INFO     | session_manager | Created managed session 1017ccee-e91a-4c6f-bf73-25405a1098ba with template=python, flavor=small, sandbox_name=sandbox-20260119_225114_000882
+2026-01-19T22:51:14.000996 | INFO     | session_manager | Created new session 1017ccee-e91a-4c6f-bf73-25405a1098ba
+2026-01-19T22:51:14.001029 | INFO     | wrapper      | Session event: command_execution_started | {"session_id":"1017ccee-e91a-4c6f-bf73-25405a1098ba"}
+2026-01-19T22:51:14.001121 | INFO     | session_manager | Creating sandbox for session 1017ccee-e91a-4c6f-bf73-25405a1098ba with template=python
+2026-01-19T22:51:14.514362 | INFO     | session_manager | Successfully created and started sandbox for session 1017ccee-e91a-4c6f-bf73-25405a1098ba
+2026-01-19T22:51:14.699356 | INFO     | wrapper      | Command execution completed: session_id=1017ccee-e91a-4c6f-bf73-25405a1098ba, command=sh, exit_code=0, time=184ms, session_created=True
+2026-01-19T22:51:14.700147 | INFO     | wrapper      | Session event: command_execution_completed | {"session_id":"1017ccee-e91a-4c6f-bf73-25405a1098ba"}
+2026-01-19T22:51:14.728729 | INFO     | session_manager | Stopping managed session 1017ccee-e91a-4c6f-bf73-25405a1098ba
+2026-01-19T22:51:25.140032 | INFO     | session_manager | Successfully stopped managed session 1017ccee-e91a-4c6f-bf73-25405a1098ba
+2026-01-19T22:51:25.141680 | INFO     | session_manager | Stopped session 1017ccee-e91a-4c6f-bf73-25405a1098ba
+2026-01-19T22:52:02.134758 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:52:02.230693 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:52:02.230979 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:52:02.231064 | INFO     | resource_manager | Resource event: orphan_cleanup_completed
+2026-01-19T22:53:02.233431 | INFO     | resource_manager | Resource event: orphan_cleanup_started
+2026-01-19T22:53:02.313775 | INFO     | resource_manager | Resource event: running_sandboxes_discovered
+2026-01-19T22:53:02.314012 | INFO     | resource_manager | Resource event: active_sessions_analyzed
+2026-01-19T22:53:02.314059 | INFO     | resource_manager | Resource event: orphan_cleanup_completed

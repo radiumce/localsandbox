@@ -2,7 +2,7 @@ import pytest
 import logging
 import uuid
 import re
-from python.sandbox import BaseSandbox
+from sandbox import BaseSandbox
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -12,7 +12,7 @@ from mcp.client.streamable_http import streamablehttp_client
 @pytest.mark.asyncio
 async def test_e2e_workflow():
     """Verify the E2E workflow, including code execution and shared volume access."""
-    async with streamablehttp_client("http://localhost:8775/mcp") as (read_stream, write_stream, _):
+    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             session_id = str(uuid.uuid4())
@@ -200,7 +200,7 @@ async def test_e2e_workflow():
 @pytest.mark.asyncio
 async def test_execute_command_creates_session():
     """Verify that calling execute_command without a session_id creates a new session."""
-    async with streamablehttp_client("http://localhost:8775/mcp") as (read_stream, write_stream, _):
+    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
 
@@ -245,7 +245,7 @@ async def test_execute_command_creates_session():
 @pytest.mark.asyncio
 async def test_parameter_validation_incorrect_session_field():
     """Verify that parameter validation rejects incorrect 'session' field (should be 'session_id')."""
-    async with streamablehttp_client("http://localhost:8775/mcp") as (read_stream, write_stream, _):
+    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             
@@ -285,7 +285,7 @@ async def test_parameter_validation_incorrect_session_field():
 @pytest.mark.asyncio
 async def test_parameter_validation_multiple_incorrect_fields():
     """Verify that parameter validation rejects multiple incorrect parameter fields."""
-    async with streamablehttp_client("http://localhost:8775/mcp") as (read_stream, write_stream, _):
+    async with streamablehttp_client("http://127.0.0.1:8776/mcp") as (read_stream, write_stream, _):
         async with ClientSession(read_stream, write_stream) as session:
             await session.initialize()
             

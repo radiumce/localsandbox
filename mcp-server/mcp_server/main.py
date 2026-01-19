@@ -1,92 +1,35 @@
 """
-MCP Server Entry Point using Official SDK
+MCP Server Entry Point
 
-This module provides the main entry point using the official MCP Python SDK.
-Only supports streamable-http transport.
+This module provides the main entry point for the HTTP-based MCP server.
 """
 
-import argparse
-import os
 import sys
-
+import logging
 from wrapper import setup_logging, get_logger, ConfigurationError
 from mcp_server.server import create_server_app
 
-
-def parse_args() -> argparse.Namespace:
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="MCP Server for Microsandbox (using official SDK)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Environment Variables:
-  MCP_SERVER_HOST     Server host address (default: localhost)
-  MCP_SERVER_PORT     Server port number (default: 8775)
-  MCP_ENABLE_CORS     Enable CORS support (default: false)
-
-Examples:
-  python -m mcp_server.main
-  python -m mcp_server.main --port 9000
-  python -m mcp_server.main --host 0.0.0.0 --enable-cors
-        """,
-    )
-
-    parser.add_argument(
-        "--host",
-        type=str,
-        default=None,
-        help="Server host address (overrides MCP_SERVER_HOST)",
-    )
-
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=None,
-        help="Server port number (overrides MCP_SERVER_PORT)",
-    )
-
-    parser.add_argument(
-        "--enable-cors",
-        action="store_true",
-        help="Enable CORS support (overrides MCP_ENABLE_CORS)",
-    )
-
-    parser.add_argument(
-        "--log-level",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        default="INFO",
-        help="Set logging level (default: INFO)",
-    )
-
-    return parser.parse_args()
-
-
-def get_server_config(args: argparse.Namespace) -> dict:
-    """Get server configuration from args and environment."""
-    config = {
-        "host": args.host or os.getenv("MCP_SERVER_HOST", "localhost"),
-        "port": args.port or int(os.getenv("MCP_SERVER_PORT", "8775")),
-    }
-
-    if args.enable_cors or os.getenv("MCP_ENABLE_CORS", "false").lower() == "true":
-        config["cors"] = True
-
-    return config
-
-
-def main():
-    """Main entry point."""
-    # Parse command line arguments
-    args = parse_args()
-
-    setup_logging(level=args.log_level)
+def start_mcp_server(host: str, port: int, enable_cors: bool = False):
+    """
+    Start the MCP server with the given configuration.
+    
+    Args:
+        host: Server host
+        port: Server port
+        enable_cors: Whether to enable CORS
+    """
+    setup_logging()
     logger = get_logger(__name__)
 
     try:
-        config = get_server_config(args)
-        server_app = create_server_app()
+        config = {
+            "host": host,
+            "port": port,
+            "cors": enable_cors
+        }
         
-        logger.info(f"Starting MCP Server on {config['host']}:{config['port']}")
+        server_app = create_server_app()
+        logger.info(f"Starting MCP Server on {host}:{port}")
         run_server(server_app, config)
 
     except ConfigurationError as e:
@@ -98,7 +41,6 @@ def main():
     except Exception as e:
         logger.error(f"Unexpected error: {e}", exc_info=True)
         sys.exit(1)
-
 
 def run_server(server_app, config):
     """Run MCP server using streamable-http transport."""
@@ -117,9 +59,11 @@ def run_server(server_app, config):
         logger.info("Server lifespan started")
         
         async with contextlib.AsyncExitStack() as stack:
-            wrapper = await get_or_create_wrapper()
-            logger.info("Wrapper initialized and started")
+            # Initialize wrapper
+            await get_or_create_wrapper()
+            logger.info("Wrapper initialized")
             
+            # Start session manager
             await stack.enter_async_context(server_app.session_manager.run())
             yield
         
@@ -148,6 +92,3 @@ def run_server(server_app, config):
         server_header=False,
     )
 
-
-if __name__ == "__main__":
-    main()
