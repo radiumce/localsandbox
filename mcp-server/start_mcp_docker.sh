@@ -165,4 +165,4 @@ log_info "Python path updated to include sandbox package"
 
 # Change to script directory and start server
 cd "$SCRIPT_DIR"
-exec $PYTHON_CMD -m mcp_server.main --transport streamable-http --port ${MCP_SERVER_PORT:-8775}
+exec $PYTHON_CMD -m server.main --transport streamable-http --port ${MCP_SERVER_PORT:-8775}

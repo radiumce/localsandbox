@@ -61,7 +61,7 @@ Documentation = "https://github.com/localsandbox/localsandbox/tree/main/docs"
 "Bug Reports" = "https://github.com/localsandbox/localsandbox/issues"
 
 [project.scripts]
-lsb = "mcp_server.cli:main"
+lsb = "server.cli:main"
 
 [tool.setuptools]
 zip-safe = false
@@ -69,15 +69,15 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["mcp-server", "python"]
-include = ["mcp_server*", "wrapper*", "sandbox*"]
+include = ["server*", "wrapper*", "sandbox*"]
 
 [tool.setuptools.package-dir]
-mcp_server = "mcp-server/mcp_server"
+server = "mcp-server/server"
 wrapper = "mcp-server/wrapper"
 sandbox = "python/sandbox"
 
 [tool.setuptools.package-data]
-mcp_server = ["*.md", "*.txt", "*.yml", "*.yaml", "*.sh", ".env.*"]
+server = ["*.md", "*.txt", "*.yml", "*.yaml", "*.sh", ".env.*"]
 wrapper = ["*.md", "*.txt", "*.yml", "*.yaml"]
 
 [tool.black]

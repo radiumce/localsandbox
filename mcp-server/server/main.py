@@ -7,7 +7,7 @@ This module provides the main entry point for the HTTP-based MCP server.
 import sys
 import logging
 from wrapper import setup_logging, get_logger, ConfigurationError
-from mcp_server.server import create_server_app
+from server.server import create_server_app
 
 def start_mcp_server(host: str, port: int, enable_cors: bool = False):
     """
@@ -54,7 +54,7 @@ def run_server(server_app, config):
     
     @contextlib.asynccontextmanager
     async def app_lifespan(app: Starlette):
-        from mcp_server.server import get_or_create_wrapper
+        from server.server import get_or_create_wrapper
         
         logger.info("Server lifespan started")
         

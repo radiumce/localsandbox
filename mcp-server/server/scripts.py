@@ -33,8 +33,8 @@ def find_env_file():
     
     # Try package installation directory
     try:
-        import mcp_server
-        package_dir = Path(mcp_server.__file__).parent.parent
+        import server
+        package_dir = Path(server.__file__).parent.parent
         env_file = package_dir / ".env.local"
         if env_file.exists():
             return str(env_file)
@@ -218,7 +218,7 @@ def start_docker_server():
     
     # Import and run the main server
     try:
-        from mcp_server.main import main
+        from server.main import main
         
         # Override sys.argv to pass the correct arguments
         sys.argv = [

@@ -8,9 +8,9 @@ import sys
 def test_imports():
     """Test that key modules can be imported."""
     modules = [
-        "mcp_server",
-        "mcp_server.main",
-        "mcp_server.scripts",
+        "server",
+        "server.main",
+        "server.scripts",
         "wrapper",
         "sandbox"
     ]

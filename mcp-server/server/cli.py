@@ -13,7 +13,7 @@ import sys
 import signal
 import psutil
 from pathlib import Path
-from mcp_server.scripts import (
+from server.scripts import (
     find_env_file,
     load_env_file,
     check_runtime,
@@ -21,7 +21,7 @@ from mcp_server.scripts import (
     pull_images,
 )
 
-PID_FILE = Path("logs/server.pid")
+PID_FILE = Path(".lsb/server.pid")
 
 def save_pid(pid):
     """Save the process ID to a file."""
@@ -88,7 +88,7 @@ def start_server(args):
     save_pid(os.getpid())
     
     try:
-        from mcp_server.main import start_mcp_server
+        from server.main import start_mcp_server
         
         host = os.getenv('MCP_SERVER_HOST', 'localhost')
         port = int(os.getenv('MCP_SERVER_PORT', '8775'))
