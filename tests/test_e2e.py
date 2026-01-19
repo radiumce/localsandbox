@@ -31,7 +31,9 @@ class Style:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-    BOLD_GREEN = '\033[1;92m'
+    # Bright lime green background - designed to look good with black text
+    PASS_BADGE = '\033[48;2;50;205;50m'  # Lime Green RGB
+    PASS_EMOJI = '✅'
 
 def log_header(text):
     """Log a major section header."""
@@ -45,8 +47,7 @@ def log_step_start(step_num, title):
 
 def log_success(step_num, message):
     """Log a successful step."""
-    # Using fixed width for alignment if possible, but simple bold green is key
-    logging.info(f"{Style.BOLD}✔ Step {step_num}: {message:<40} {Style.BOLD_GREEN}PASSED{Style.ENDC}")
+    logging.info(f"{Style.BOLD}✔ Step {step_num}: {message:<40} {Style.PASS_BADGE} PASSED {Style.ENDC} {Style.PASS_EMOJI}")
 
 def log_info(message):
     """Log general info."""
