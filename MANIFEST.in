@@ -1,7 +1,6 @@
 # Include documentation and configuration files
 include README.md
 include QUICKSTART.md
-include INSTALLATION.md
 include LICENSE
 include *.md
 include *.txt
