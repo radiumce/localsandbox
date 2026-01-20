@@ -346,6 +346,18 @@ class ResourceManager:
                         # Create the expected sandbox identifier
                         sandbox_key = f"{session.namespace}/{session.sandbox_name}"
                         active_sandbox_names.add(sandbox_key)
+                        
+                        # Also protect any pending sandbox name (e.g., during pin operations)
+                        if getattr(session, 'pending_sandbox_name', None):
+                            pending_key = f"{session.namespace}/{session.pending_sandbox_name}"
+                            active_sandbox_names.add(pending_key)
+                            log_resource_event(
+                                logger,
+                                "pending_sandbox_protected",
+                                "sandbox",
+                                session_id=session.session_id,
+                                pending_name=session.pending_sandbox_name
+                            )
                 
                 log_resource_event(
                     logger,

@@ -74,6 +74,7 @@ class ManagedSession:
         # Include microseconds to avoid collisions when creating multiple sandboxes in the same second
         timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         self.sandbox_name = f"sandbox-{timestamp_str}"
+        self.pending_sandbox_name: Optional[str] = None  # Track pending name change during pin operations
         
         # Configuration
         self._config = config
@@ -939,53 +940,59 @@ class SessionManager:
         
         try:
             # Use the sandbox's pin method
-            await session._sandbox.pin(pinned_name)
-            logger.debug(f"Pinned sandbox from {current_sandbox_name} to {pinned_name}")
-            
-            # Update session's sandbox_name to reflect the new pinned name
-            session.sandbox_name = pinned_name
-            logger.debug(f"Updated session {session_id} sandbox_name to {pinned_name}")
-            
-            # After pin operation, the container may have been recreated with a new ID
-            # We need to recreate the sandbox object to ensure it has the correct container reference
+            # Set pending name to protect from orphan cleanup during the operation
+            session.pending_sandbox_name = pinned_name
             try:
-                # Store the old sandbox reference
-                old_sandbox = session._sandbox
+                await session._sandbox.pin(pinned_name)
+                logger.debug(f"Pinned sandbox from {current_sandbox_name} to {pinned_name}")
                 
-                # Create a new sandbox instance that will attach to the pinned container
-                if session.template in ["python"]:
-                    from sandbox import PythonSandbox
-                    new_sandbox = PythonSandbox(
-                        container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
-                        namespace=session.namespace,
-                        name=pinned_name  # Use the pinned name
-                    )
-                elif session.template in ["node", "nodejs", "javascript"]:
-                    from sandbox import NodeSandbox
-                    new_sandbox = NodeSandbox(
-                        container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
-                        namespace=session.namespace,
-                        name=pinned_name  # Use the pinned name
-                    )
-                else:
-                    raise RuntimeError(f"Unsupported template: {session.template}")
+                # Update session's sandbox_name to reflect the new pinned name
+                session.sandbox_name = pinned_name
+                logger.debug(f"Updated session {session_id} sandbox_name to {pinned_name}")
                 
-                # Attach to the existing pinned container
-                container_info = await new_sandbox._runtime.get_container_info(pinned_name)
-                if container_info:
-                    new_sandbox._container_id = container_info['Id']
-                    new_sandbox._is_started = True
-                    new_sandbox._name = pinned_name
+                # After pin operation, the container may have been recreated with a new ID
+                # We need to recreate the sandbox object to ensure it has the correct container reference
+                try:
+                    # Store the old sandbox reference
+                    old_sandbox = session._sandbox
                     
-                    # Replace the old sandbox with the new one
-                    session._sandbox = new_sandbox
-                    logger.debug(f"Successfully updated session {session_id} sandbox reference to pinned container")
-                else:
-                    logger.warning(f"Could not find pinned container {pinned_name}, keeping original sandbox reference")
+                    # Create a new sandbox instance that will attach to the pinned container
+                    if session.template in ["python"]:
+                        from sandbox import PythonSandbox
+                        new_sandbox = PythonSandbox(
+                            container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
+                            namespace=session.namespace,
+                            name=pinned_name  # Use the pinned name
+                        )
+                    elif session.template in ["node", "nodejs", "javascript"]:
+                        from sandbox import NodeSandbox
+                        new_sandbox = NodeSandbox(
+                            container_runtime=os.environ.get("CONTAINER_RUNTIME", "docker"),
+                            namespace=session.namespace,
+                            name=pinned_name  # Use the pinned name
+                        )
+                    else:
+                        raise RuntimeError(f"Unsupported template: {session.template}")
                     
-            except Exception as refresh_error:
-                logger.warning(f"Failed to update session {session_id} sandbox reference after pin: {refresh_error}")
-                # Don't fail the pin operation for this, as the container should still be accessible
+                    # Attach to the existing pinned container
+                    container_info = await new_sandbox._runtime.get_container_info(pinned_name)
+                    if container_info:
+                        new_sandbox._container_id = container_info['Id']
+                        new_sandbox._is_started = True
+                        new_sandbox._name = pinned_name
+                        
+                        # Replace the old sandbox with the new one
+                        session._sandbox = new_sandbox
+                        logger.debug(f"Successfully updated session {session_id} sandbox reference to pinned container")
+                    else:
+                        logger.warning(f"Could not find pinned container {pinned_name}, keeping original sandbox reference")
+                        
+                except Exception as refresh_error:
+                    logger.warning(f"Failed to update session {session_id} sandbox reference after pin: {refresh_error}")
+                    # Don't fail the pin operation for this, as the container should still be accessible
+            finally:
+                # Clear pending name
+                session.pending_sandbox_name = None
             
             success_message = f"Successfully pinned session {session_id} as '{pinned_name}'. Container {pinned_name} has been preserved and will not be cleaned up during session timeout."
             logger.info(success_message)
