@@ -88,7 +88,7 @@ def run_server(server_app, config):
         host=config["host"],
         port=config["port"],
         log_level="info",
-        access_log=False,
+        access_log=True,
         server_header=False,
     )
 

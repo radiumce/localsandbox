@@ -57,16 +57,16 @@ class WrapperConfig:
         sensible defaults for missing values.
         
         Environment Variables:
-            MSB_SESSION_TIMEOUT: Session timeout in seconds
-            MSB_MAX_SESSIONS: Maximum concurrent sessions
-            MSB_CLEANUP_INTERVAL: Session cleanup interval in seconds
-            MSB_DEFAULT_FLAVOR: Default sandbox flavor (small/medium/large)
-            MSB_SANDBOX_START_TIMEOUT: Sandbox startup timeout in seconds
-            MSB_EXECUTION_TIMEOUT: Default execution timeout in seconds
-            MSB_MAX_TOTAL_MEMORY_MB: Maximum total memory allocation in MB
-            MSB_SHARED_VOLUME_PATH: Shared volume mappings (JSON array or comma-separated)
-            MSB_ORPHAN_CLEANUP_INTERVAL: Orphan cleanup interval in seconds
-            MSB_ENABLE_LRU_EVICTION: Enable LRU eviction when resource limits are reached (true/false)
+            LSB_SESSION_TIMEOUT: Session timeout in seconds
+            LSB_MAX_SESSIONS: Maximum concurrent sessions
+            LSB_CLEANUP_INTERVAL: Session cleanup interval in seconds
+            LSB_DEFAULT_FLAVOR: Default sandbox flavor (small/medium/large)
+            LSB_SANDBOX_START_TIMEOUT: Sandbox startup timeout in seconds
+            LSB_EXECUTION_TIMEOUT: Default execution timeout in seconds
+            LSB_MAX_TOTAL_MEMORY_MB: Maximum total memory allocation in MB
+            LSB_SHARED_VOLUME_PATH: Shared volume mappings (JSON array or comma-separated)
+            LSB_ORPHAN_CLEANUP_INTERVAL: Orphan cleanup interval in seconds
+            LSB_ENABLE_LRU_EVICTION: Enable LRU eviction when resource limits are reached (true/false)
             
         Returns:
             WrapperConfig: Configuration instance with values from environment
@@ -85,20 +85,20 @@ class WrapperConfig:
             cls._load_custom_flavors()
             
             # Parse numeric values with validation
-            session_timeout = cls._parse_positive_int('MSB_SESSION_TIMEOUT', 3600)
-            max_concurrent_sessions = cls._parse_positive_int('MSB_MAX_SESSIONS', 10)
-            cleanup_interval = cls._parse_positive_int('MSB_CLEANUP_INTERVAL', 60)
-            sandbox_start_timeout = cls._parse_positive_float('MSB_SANDBOX_START_TIMEOUT', 180.0)
-            default_execution_timeout = cls._parse_positive_int('MSB_EXECUTION_TIMEOUT', 300)
-            orphan_cleanup_interval = cls._parse_positive_int('MSB_ORPHAN_CLEANUP_INTERVAL', 60)
+            session_timeout = cls._parse_positive_int('LSB_SESSION_TIMEOUT', 3600)
+            max_concurrent_sessions = cls._parse_positive_int('LSB_MAX_SESSIONS', 10)
+            cleanup_interval = cls._parse_positive_int('LSB_CLEANUP_INTERVAL', 60)
+            sandbox_start_timeout = cls._parse_positive_float('LSB_SANDBOX_START_TIMEOUT', 180.0)
+            default_execution_timeout = cls._parse_positive_int('LSB_EXECUTION_TIMEOUT', 300)
+            orphan_cleanup_interval = cls._parse_positive_int('LSB_ORPHAN_CLEANUP_INTERVAL', 60)
             
             # Parse optional memory limit
             max_total_memory_mb = None
-            if os.getenv('MSB_MAX_TOTAL_MEMORY_MB'):
-                max_total_memory_mb = cls._parse_positive_int('MSB_MAX_TOTAL_MEMORY_MB', None)
+            if os.getenv('LSB_MAX_TOTAL_MEMORY_MB'):
+                max_total_memory_mb = cls._parse_positive_int('LSB_MAX_TOTAL_MEMORY_MB', None)
             
             # Parse LRU eviction setting
-            enable_lru_eviction = cls._parse_boolean('MSB_ENABLE_LRU_EVICTION', True)
+            enable_lru_eviction = cls._parse_boolean('LSB_ENABLE_LRU_EVICTION', True)
             
             config = cls(
                 session_timeout=session_timeout,
@@ -146,7 +146,7 @@ class WrapperConfig:
         Raises:
             ConfigurationError: If parsing fails or format is invalid
         """
-        volume_path_env = os.getenv('MSB_SHARED_VOLUME_PATH')
+        volume_path_env = os.getenv('LSB_SHARED_VOLUME_PATH')
         if not volume_path_env:
             return []
         
@@ -154,7 +154,7 @@ class WrapperConfig:
         if not volume_path_env:
             return []
         
-        logger.debug(f"Parsing MSB_SHARED_VOLUME_PATH: {repr(volume_path_env)}")
+        logger.debug(f"Parsing LSB_SHARED_VOLUME_PATH: {repr(volume_path_env)}")
         
         try:
             # Check if it looks like JSON (array or object)
@@ -162,7 +162,7 @@ class WrapperConfig:
                 # For JSON objects, provide helpful error message
                 if volume_path_env.startswith('{'):
                     raise ConfigurationError(
-                        f"MSB_SHARED_VOLUME_PATH must be an array of strings, not a JSON object. "
+                        f"LSB_SHARED_VOLUME_PATH must be an array of strings, not a JSON object. "
                         f"Got: {repr(volume_path_env)}\n"
                         f"Example: ['./data:/workspace', './shared:/sandbox/shared']"
                     )
@@ -170,14 +170,14 @@ class WrapperConfig:
                 # Handle JSON arrays
                 if not volume_path_env.endswith(']'):
                     raise ConfigurationError(
-                        f"MSB_SHARED_VOLUME_PATH appears to be JSON array but is malformed: "
+                        f"LSB_SHARED_VOLUME_PATH appears to be JSON array but is malformed: "
                         f"missing closing bracket. Got: {repr(volume_path_env)}"
                     )
                 
                 # Additional validation for common JSON errors
                 if volume_path_env.count('[') != volume_path_env.count(']'):
                     raise ConfigurationError(
-                        f"MSB_SHARED_VOLUME_PATH has mismatched brackets. Got: {repr(volume_path_env)}"
+                        f"LSB_SHARED_VOLUME_PATH has mismatched brackets. Got: {repr(volume_path_env)}"
                     )
                 
                 try:
@@ -187,12 +187,12 @@ class WrapperConfig:
                     error_msg = str(e)
                     helpful_msg = cls._get_helpful_json_error_message(volume_path_env, error_msg)
                     raise ConfigurationError(
-                        f"Invalid JSON format in MSB_SHARED_VOLUME_PATH: {error_msg}\n{helpful_msg}"
+                        f"Invalid JSON format in LSB_SHARED_VOLUME_PATH: {error_msg}\n{helpful_msg}"
                     )
                 
                 if not isinstance(parsed_mappings, list):
                     raise ConfigurationError(
-                        f"MSB_SHARED_VOLUME_PATH JSON must be an array of strings, got {type(parsed_mappings).__name__}. "
+                        f"LSB_SHARED_VOLUME_PATH JSON must be an array of strings, got {type(parsed_mappings).__name__}. "
                         f"Example: ['./data:/workspace', './shared:/sandbox/shared']"
                     )
                 
@@ -200,7 +200,7 @@ class WrapperConfig:
                 for i, mapping in enumerate(parsed_mappings):
                     if not isinstance(mapping, str):
                         raise ConfigurationError(
-                            f"MSB_SHARED_VOLUME_PATH item {i} must be a string, got {type(mapping).__name__}. "
+                            f"LSB_SHARED_VOLUME_PATH item {i} must be a string, got {type(mapping).__name__}. "
                             f"All volume mappings must be strings like 'host_path:sandbox_path'"
                         )
                 
@@ -228,7 +228,7 @@ class WrapperConfig:
         except Exception as e:
             # Wrap unexpected errors
             raise ConfigurationError(
-                f"Unexpected error parsing MSB_SHARED_VOLUME_PATH '{volume_path_env}': {str(e)}"
+                f"Unexpected error parsing LSB_SHARED_VOLUME_PATH '{volume_path_env}': {str(e)}"
             )
     
     @classmethod
@@ -258,7 +258,7 @@ class WrapperConfig:
                 validated_mappings.append(mapping)
             except ValueError as e:
                 raise ConfigurationError(
-                    f"Invalid volume mapping at position {i} in MSB_SHARED_VOLUME_PATH: {e}\n"
+                    f"Invalid volume mapping at position {i} in LSB_SHARED_VOLUME_PATH: {e}\n"
                     f"Got: '{mapping}'\n"
                     f"Expected format: 'host_path:sandbox_path' (e.g., './data:/workspace')"
                 )
@@ -311,14 +311,14 @@ class WrapperConfig:
         Raises:
             ConfigurationError: If flavor value is invalid
         """
-        flavor_str = os.getenv('MSB_DEFAULT_FLAVOR', 'small').lower().strip()
+        flavor_str = os.getenv('LSB_DEFAULT_FLAVOR', 'small').lower().strip()
         
         try:
             return SandboxFlavor(flavor_str)
         except ValueError:
             valid_flavors = [f.value for f in SandboxFlavor]
             raise ConfigurationError(
-                f"Invalid MSB_DEFAULT_FLAVOR '{flavor_str}'. "
+                f"Invalid LSB_DEFAULT_FLAVOR '{flavor_str}'. "
                 f"Valid options are: {', '.join(valid_flavors)}"
             )
     
@@ -457,12 +457,12 @@ class WrapperConfig:
         Load custom flavor configurations from environment variable.
         
         Environment variable:
-            MSB_FLAVOR_CONFIGS: JSON object defining custom flavor configurations
+            LSB_FLAVOR_CONFIGS: JSON object defining custom flavor configurations
             Format: {"small": {"memory_mb": 1024, "cpu_limit": 1.0}, ...}
             
         This allows overriding the default flavor configurations defined in SandboxFlavor.
         """
-        flavor_config_env = os.getenv('MSB_FLAVOR_CONFIGS')
+        flavor_config_env = os.getenv('LSB_FLAVOR_CONFIGS')
         if not flavor_config_env:
             return
         
@@ -472,7 +472,7 @@ class WrapperConfig:
             
             if not isinstance(custom_flavors, dict):
                 raise ConfigurationError(
-                    f"MSB_FLAVOR_CONFIGS must be a JSON object, got {type(custom_flavors).__name__}"
+                    f"LSB_FLAVOR_CONFIGS must be a JSON object, got {type(custom_flavors).__name__}"
                 )
             
             # Validate and update SandboxFlavor methods
@@ -509,7 +509,7 @@ class WrapperConfig:
             
         except json.JSONDecodeError as e:
             raise ConfigurationError(
-                f"Invalid JSON format in MSB_FLAVOR_CONFIGS: {e}"
+                f"Invalid JSON format in LSB_FLAVOR_CONFIGS: {e}"
             )
         except Exception as e:
             if isinstance(e, ConfigurationError):

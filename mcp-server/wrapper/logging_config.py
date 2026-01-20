@@ -192,11 +192,11 @@ def setup_logging(
     structured_format: bool = True
 ) -> logging.Logger:
     """
-    Setup centralized logging configuration for the microsandbox wrapper.
+    Setup centralized logging configuration for the LocalSandbox wrapper.
     
-    Args:
+    Arguments:
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        log_file: Optional log file path. If None, uses environment variable MSB_LOG_FILE
+        log_file: Optional log file path. If None, uses environment variable LSB_LOG_FILE
         max_file_size: Maximum size of log file before rotation (bytes)
         backup_count: Number of backup files to keep
         enable_console: Whether to enable console logging
@@ -207,12 +207,12 @@ def setup_logging(
     """
     
     # Get configuration from environment variables
-    level = os.getenv('MSB_LOG_LEVEL', level).upper()
-    log_file = log_file or os.getenv('MSB_LOG_FILE', 'logs/server.log')
-    max_file_size = int(os.getenv('MSB_LOG_MAX_SIZE', str(max_file_size)))
-    backup_count = int(os.getenv('MSB_LOG_BACKUP_COUNT', str(backup_count)))
-    enable_console = os.getenv('MSB_LOG_CONSOLE', 'true').lower() in ('true', '1', 'yes')
-    structured_format = os.getenv('MSB_LOG_STRUCTURED', 'true').lower() in ('true', '1', 'yes')
+    level = os.getenv('LSB_LOG_LEVEL', level).upper()
+    log_file = log_file or os.getenv('LSB_LOG_FILE', 'logs/server.log')
+    max_file_size = int(os.getenv('LSB_LOG_MAX_SIZE', str(max_file_size)))
+    backup_count = int(os.getenv('LSB_LOG_BACKUP_COUNT', str(backup_count)))
+    enable_console = os.getenv('LSB_LOG_CONSOLE', 'true').lower() in ('true', '1', 'yes')
+    structured_format = os.getenv('LSB_LOG_STRUCTURED', 'true').lower() in ('true', '1', 'yes')
     
     # Create root logger for the wrapper
     logger = logging.getLogger('wrapper')

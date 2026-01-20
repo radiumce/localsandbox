@@ -1,4 +1,4 @@
-# Microsandbox MCP Server
+# LocalSandbox MCP Server
 
 A Model Context Protocol (MCP) server that provides secure code execution capabilities through sandboxed environments.
 
@@ -79,9 +79,9 @@ The server can be configured through command-line arguments or environment varia
 - `LOCALSANDBOX_PYTHON_IMAGE`: Python Docker image (default: python:3.11-slim)
 - `LOCALSANDBOX_NODE_IMAGE`: Node.js Docker image (default: node:18-slim)
 - `LOCALSANDBOX_DEFAULT_TIMEOUT`: Default execution timeout in seconds
-- `MSB_MAX_SESSIONS`: Maximum concurrent sessions
-- `MSB_SESSION_TIMEOUT`: Session timeout in seconds
-- `MSB_SHARED_VOLUME_PATH`: JSON array of volume mappings for containers
+- `LSB_MAX_SESSIONS`: Maximum concurrent sessions
+- `LSB_SESSION_TIMEOUT`: Session timeout in seconds
+- `LSB_SHARED_VOLUME_PATH`: JSON array of volume mappings for containers
 
 ### LocalSandbox Configuration File
 
@@ -99,16 +99,16 @@ LOCALSANDBOX_NODE_IMAGE=node:18-slim
 LOCALSANDBOX_DEFAULT_TIMEOUT=1800
 
 # Session Management
-MSB_MAX_SESSIONS=5
-MSB_SESSION_TIMEOUT=3600
-MSB_DEFAULT_FLAVOR=small
+LSB_MAX_SESSIONS=5
+LSB_SESSION_TIMEOUT=3600
+LSB_DEFAULT_FLAVOR=small
 
 # Volume Mapping
-MSB_ENABLE_VOLUME_MAPPING=true
-MSB_SHARED_VOLUME_PATH='["/path/to/host/dir:/workspace"]'
+LSB_ENABLE_VOLUME_MAPPING=true
+LSB_SHARED_VOLUME_PATH='["/path/to/host/dir:/workspace"]'
 
 # Logging
-MSB_LOG_LEVEL=DEBUG
+LSB_LOG_LEVEL=DEBUG
 ```
 
 
@@ -150,7 +150,7 @@ Notes:
 The project consists of several key components:
 
 - **MCP Server**: Core MCP protocol implementation
-- **Microsandbox Wrapper**: Abstraction layer for sandbox operations
+- **LocalSandbox Wrapper**: Abstraction layer for sandbox operations
 - **Transport Layer**: Support for multiple communication protocols
 - **Resource Management**: Container lifecycle and resource allocation
 

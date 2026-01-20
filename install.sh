@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Microsandbox MCP Server Installation Script
+# LocalSandbox MCP Server Installation Script
 
 set -e
 
-echo "🚀 Installing Microsandbox MCP Server..."
+echo "🚀 Installing LocalSandbox MCP Server..."
 
 # Function to check for command availability
 has_command() {

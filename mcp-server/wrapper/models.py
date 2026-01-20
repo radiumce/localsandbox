@@ -1,5 +1,5 @@
 """
-Data models for the microsandbox wrapper.
+Data models for the LocalSandbox wrapper.
 
 This module defines all data structures used throughout the wrapper,
 including enums, dataclasses, and utility methods for data handling.

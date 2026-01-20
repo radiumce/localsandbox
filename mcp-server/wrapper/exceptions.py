@@ -1,5 +1,5 @@
 """
-Exception definitions for the microsandbox wrapper.
+Exception definitions for the LocalSandbox wrapper.
 
 This module defines all custom exception types used throughout the wrapper,
 providing clear error categorization, helpful error messages, and recovery suggestions.
@@ -28,9 +28,9 @@ class ErrorCategory(Enum):
     SYSTEM = "system"
 
 
-class MicrosandboxWrapperError(Exception):
+class LocalSandboxWrapperError(Exception):
     """
-    Base exception class for all microsandbox wrapper errors.
+    Base exception class for all LocalSandbox wrapper errors.
     
     All other wrapper exceptions inherit from this class, allowing
     for easy catching of any wrapper-related errors.
@@ -125,7 +125,7 @@ class MicrosandboxWrapperError(Exception):
         return message
 
 
-class SandboxCreationError(MicrosandboxWrapperError):
+class SandboxCreationError(LocalSandboxWrapperError):
     """
     Raised when sandbox creation fails.
     
@@ -150,11 +150,11 @@ class SandboxCreationError(MicrosandboxWrapperError):
             context["flavor"] = flavor
         
         recovery_suggestions = [
-            "Verify that the microsandbox server is running and accessible",
+            "Verify that the LocalSandbox server is running and accessible",
             "Check if the specified template is supported (python, node)",
             "Ensure sufficient system resources are available",
             "Try using a smaller sandbox flavor (small instead of large)",
-            "Check network connectivity to the microsandbox server"
+            "Check network connectivity to the LocalSandbox server"
         ]
         
         super().__init__(
@@ -167,7 +167,7 @@ class SandboxCreationError(MicrosandboxWrapperError):
         )
 
 
-class CodeExecutionError(MicrosandboxWrapperError):
+class CodeExecutionError(LocalSandboxWrapperError):
     """
     Raised when code execution fails within a sandbox.
     
@@ -233,7 +233,7 @@ class CodeExecutionError(MicrosandboxWrapperError):
         )
 
 
-class CommandExecutionError(MicrosandboxWrapperError):
+class CommandExecutionError(LocalSandboxWrapperError):
     """
     Raised when command execution fails within a sandbox.
     
@@ -297,7 +297,7 @@ class CommandExecutionError(MicrosandboxWrapperError):
         )
 
 
-class ResourceLimitError(MicrosandboxWrapperError):
+class ResourceLimitError(LocalSandboxWrapperError):
     """
     Raised when resource limits are exceeded.
     
@@ -364,7 +364,7 @@ class ResourceLimitError(MicrosandboxWrapperError):
         )
 
 
-class SessionNotFoundError(MicrosandboxWrapperError):
+class SessionNotFoundError(LocalSandboxWrapperError):
     """
     Raised when attempting to access a non-existent session.
     
@@ -400,7 +400,7 @@ class SessionNotFoundError(MicrosandboxWrapperError):
         )
 
 
-class ConfigurationError(MicrosandboxWrapperError):
+class ConfigurationError(LocalSandboxWrapperError):
     """
     Raised when configuration is invalid or incomplete.
     
@@ -467,12 +467,12 @@ class ConfigurationError(MicrosandboxWrapperError):
         )
 
 
-class ConnectionError(MicrosandboxWrapperError):
+class ConnectionError(LocalSandboxWrapperError):
     """
     Raised when network connectivity issues occur.
     
     This includes:
-    - Unable to connect to microsandbox server
+    - Unable to connect to LocalSandbox server
     - Network timeouts
     - Authentication failures
     - Server unavailable errors
@@ -492,7 +492,7 @@ class ConnectionError(MicrosandboxWrapperError):
             context["retry_count"] = retry_count
         
         recovery_suggestions = [
-            "Check if the microsandbox server is running",
+            "Check if the LocalSandbox server is running",
             "Verify the server URL is correct and accessible",
             "Check network connectivity and firewall settings",
             "Try again after a short delay (network issues may be temporary)",
@@ -521,7 +521,7 @@ class ConnectionError(MicrosandboxWrapperError):
         )
 
 
-class ContainerNotFoundError(MicrosandboxWrapperError):
+class ContainerNotFoundError(LocalSandboxWrapperError):
     """
     Raised when a container cannot be found.
     
@@ -561,7 +561,7 @@ class ContainerNotFoundError(MicrosandboxWrapperError):
         )
 
 
-class PinnedSandboxNotFoundError(MicrosandboxWrapperError):
+class PinnedSandboxNotFoundError(LocalSandboxWrapperError):
     """
     Raised when attempting to attach to a non-existent pinned sandbox.
     
@@ -598,7 +598,7 @@ class PinnedSandboxNotFoundError(MicrosandboxWrapperError):
         )
 
 
-class SandboxNotFoundError(MicrosandboxWrapperError):
+class SandboxNotFoundError(LocalSandboxWrapperError):
     """
     Raised when a sandbox cannot be found.
     
@@ -638,7 +638,7 @@ class SandboxNotFoundError(MicrosandboxWrapperError):
         )
 
 
-class SandboxStartError(MicrosandboxWrapperError):
+class SandboxStartError(LocalSandboxWrapperError):
     """
     Raised when a sandbox fails to start.
     
@@ -676,7 +676,7 @@ class SandboxStartError(MicrosandboxWrapperError):
         )
 
 
-class ContainerStartError(MicrosandboxWrapperError):
+class ContainerStartError(LocalSandboxWrapperError):
     """
     Raised when a container fails to start.
     
@@ -713,7 +713,7 @@ class ContainerStartError(MicrosandboxWrapperError):
         )
 
 
-class SessionCreationError(MicrosandboxWrapperError):
+class SessionCreationError(LocalSandboxWrapperError):
     """
     Raised when session creation fails during attachment operations.
     
@@ -769,7 +769,7 @@ def create_sandbox_creation_error(
         SandboxCreationError: Configured error with context and suggestions
     """
     if "connection" in str(original_error).lower():
-        message = f"Failed to create {template} sandbox ({flavor}): Unable to connect to microsandbox server"
+        message = f"Failed to create {template} sandbox ({flavor}): Unable to connect to LocalSandbox server"
     elif "timeout" in str(original_error).lower():
         message = f"Failed to create {template} sandbox ({flavor}): Server timeout during creation"
     elif "resource" in str(original_error).lower():
@@ -884,7 +884,7 @@ def handle_sdk_exception(
     operation: str,
     original_error: Exception,
     **context
-) -> MicrosandboxWrapperError:
+) -> LocalSandboxWrapperError:
     """
     Convert SDK exceptions to appropriate wrapper exceptions.
     
@@ -894,7 +894,7 @@ def handle_sdk_exception(
         **context: Additional context information
         
     Returns:
-        MicrosandboxWrapperError: Appropriate wrapper exception
+        LocalSandboxWrapperError: Appropriate wrapper exception
     """
     error_str = str(original_error).lower()
     
@@ -942,7 +942,7 @@ def handle_sdk_exception(
         )
     
     # Default to base wrapper error
-    return MicrosandboxWrapperError(
+    return LocalSandboxWrapperError(
         message=f"Operation '{operation}' failed: {str(original_error)}",
         category=ErrorCategory.SYSTEM,
         severity=ErrorSeverity.MEDIUM,
@@ -953,7 +953,7 @@ def handle_sdk_exception(
 
 def log_error_with_context(
     logger: logging.Logger,
-    error: MicrosandboxWrapperError,
+    error: LocalSandboxWrapperError,
     additional_context: Optional[Dict[str, Any]] = None
 ):
     """

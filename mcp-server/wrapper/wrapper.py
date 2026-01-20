@@ -1,7 +1,7 @@
 """
-Main wrapper interface for the microsandbox wrapper.
+Main wrapper interface for the LocalSandbox wrapper.
 
-This module provides the high-level MicrosandboxWrapper class that serves as the
+This module provides the high-level LocalSandboxWrapper class that serves as the
 primary interface for MCP Server implementations. It integrates session management,
 resource management, and provides simplified APIs for code and command execution.
 """
@@ -15,7 +15,7 @@ from .exceptions import (
     ConfigurationError,
     ConnectionError,
     SandboxStartError,
-    MicrosandboxWrapperError,
+    LocalSandboxWrapperError,
     PinnedSandboxNotFoundError,
     SessionCreationError,
     handle_sdk_exception,
@@ -37,9 +37,9 @@ from .session_manager import SessionManager
 logger = get_logger('wrapper')
 
 
-class MicrosandboxWrapper:
+class LocalSandboxWrapper:
     """
-    High-level wrapper interface for microsandbox operations.
+    High-level wrapper interface for LocalSandbox operations.
     
     This class provides a simplified API for MCP Server implementations,
     hiding the complexity of session management, resource allocation,
@@ -60,7 +60,7 @@ class MicrosandboxWrapper:
         config: Optional[WrapperConfig] = None
     ):
         """
-        Initialize the microsandbox wrapper.
+        Initialize the LocalSandbox wrapper.
         
         Args:
             server_url: Deprecated. Ignored in Docker-based implementation.
@@ -94,7 +94,7 @@ class MicrosandboxWrapper:
             # Track initialization state
             self._started = False
             
-            logger.info(f"Initialized MicrosandboxWrapper with config: {config}")
+            logger.info(f"Initialized LocalSandboxWrapper with config: {config}")
             
         except Exception as e:
             if isinstance(e, ConfigurationError):
@@ -116,14 +116,14 @@ class MicrosandboxWrapper:
             return
         
         try:
-            logger.info("Starting MicrosandboxWrapper")
+            logger.info("Starting LocalSandboxWrapper")
             
             # Start managers in order
             await self._session_manager.start()
             await self._resource_manager.start()
             
             self._started = True
-            logger.info("MicrosandboxWrapper started successfully")
+            logger.info("LocalSandboxWrapper started successfully")
             
         except Exception as e:
             logger.error(f"Failed to start wrapper: {e}", exc_info=True)
@@ -132,7 +132,7 @@ class MicrosandboxWrapper:
                 await self._cleanup_on_error()
             except Exception as cleanup_error:
                 logger.error(f"Error during startup cleanup: {cleanup_error}")
-            raise MicrosandboxWrapperError(f"Failed to start wrapper: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to start wrapper: {str(e)}")
     
     async def stop(self, timeout_seconds: float = 30.0) -> None:
         """
@@ -149,23 +149,23 @@ class MicrosandboxWrapper:
             return
         
         try:
-            logger.info("Stopping MicrosandboxWrapper")
+            logger.info("Stopping LocalSandboxWrapper")
             
             # Use graceful shutdown with timeout
             shutdown_result = await self.graceful_shutdown(timeout_seconds)
             
             if shutdown_result['status'] == 'success':
-                logger.info("MicrosandboxWrapper stopped successfully")
+                logger.info("LocalSandboxWrapper stopped successfully")
             elif shutdown_result['status'] == 'partial_success':
                 logger.warning(
-                    f"MicrosandboxWrapper stopped with some issues: "
+                    f"LocalSandboxWrapper stopped with some issues: "
                     f"{shutdown_result['error_count']} errors occurred"
                 )
             else:
                 logger.error(
-                    f"MicrosandboxWrapper shutdown failed: {shutdown_result.get('error', 'Unknown error')}"
+                    f"LocalSandboxWrapper shutdown failed: {shutdown_result.get('error', 'Unknown error')}"
                 )
-                raise MicrosandboxWrapperError(
+                raise LocalSandboxWrapperError(
                     f"Shutdown failed: {shutdown_result.get('error', 'Multiple errors occurred')}"
                 )
             
@@ -173,7 +173,7 @@ class MicrosandboxWrapper:
             logger.error(f"Error during wrapper shutdown: {e}", exc_info=True)
             # Mark as stopped even if there were errors
             self._started = False
-            raise MicrosandboxWrapperError(f"Error during shutdown: {str(e)}")
+            raise LocalSandboxWrapperError(f"Error during shutdown: {str(e)}")
     
     async def execute_code(
         self,
@@ -282,9 +282,9 @@ class MicrosandboxWrapper:
                 
             except Exception as e:
                 logger.error(f"Code execution failed: {e}", exc_info=True)
-                if isinstance(e, MicrosandboxWrapperError):
+                if isinstance(e, LocalSandboxWrapperError):
                     raise
-                raise MicrosandboxWrapperError(f"Code execution failed: {str(e)}")
+                raise LocalSandboxWrapperError(f"Code execution failed: {str(e)}")
     
     async def execute_command(
         self,
@@ -401,9 +401,9 @@ class MicrosandboxWrapper:
                 
             except Exception as e:
                 logger.error(f"Command execution failed: {e}", exc_info=True)
-                if isinstance(e, MicrosandboxWrapperError):
+                if isinstance(e, LocalSandboxWrapperError):
                     raise
-                raise MicrosandboxWrapperError(f"Command execution failed: {str(e)}") 
+                raise LocalSandboxWrapperError(f"Command execution failed: {str(e)}") 
    
     async def get_sessions(
         self,
@@ -424,9 +424,9 @@ class MicrosandboxWrapper:
             return await self._session_manager.get_sessions(session_id)
         except Exception as e:
             logger.error(f"Failed to get session info: {e}", exc_info=True)
-            if isinstance(e, MicrosandboxWrapperError):
+            if isinstance(e, LocalSandboxWrapperError):
                 raise
-            raise MicrosandboxWrapperError(f"Failed to get session info: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to get session info: {str(e)}")
     
     async def stop_session(self, session_id: str) -> bool:
         """
@@ -444,9 +444,9 @@ class MicrosandboxWrapper:
             return await self._session_manager.stop_session(session_id)
         except Exception as e:
             logger.error(f"Failed to stop session {session_id}: {e}", exc_info=True)
-            if isinstance(e, MicrosandboxWrapperError):
+            if isinstance(e, LocalSandboxWrapperError):
                 raise
-            raise MicrosandboxWrapperError(f"Failed to stop session: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to stop session: {str(e)}")
     
     async def pin_session(self, session_id: str, pinned_name: str) -> str:
         """
@@ -470,9 +470,9 @@ class MicrosandboxWrapper:
             return await self._session_manager.pin_session(session_id, pinned_name)
         except Exception as e:
             logger.error(f"Failed to pin session {session_id}: {e}", exc_info=True)
-            if isinstance(e, MicrosandboxWrapperError):
+            if isinstance(e, LocalSandboxWrapperError):
                 raise
-            raise MicrosandboxWrapperError(f"Failed to pin session: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to pin session: {str(e)}")
     
     async def attach_to_pinned_sandbox(self, pinned_name: str) -> str:
         """
@@ -495,9 +495,9 @@ class MicrosandboxWrapper:
             return await self._session_manager.attach_to_pinned_sandbox(pinned_name)
         except Exception as e:
             logger.error(f"Failed to attach to pinned sandbox {pinned_name}: {e}", exc_info=True)
-            if isinstance(e, MicrosandboxWrapperError):
+            if isinstance(e, LocalSandboxWrapperError):
                 raise
-            raise MicrosandboxWrapperError(f"Failed to attach to pinned sandbox: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to attach to pinned sandbox: {str(e)}")
     
     async def get_volume_mappings(self) -> List[VolumeMapping]:
         """
@@ -512,7 +512,7 @@ class MicrosandboxWrapper:
             return self._config.get_parsed_volume_mappings()
         except Exception as e:
             logger.error(f"Failed to get volume mappings: {e}", exc_info=True)
-            raise MicrosandboxWrapperError(f"Failed to get volume mappings: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to get volume mappings: {str(e)}")
     
     async def get_resource_stats(self) -> ResourceStats:
         """
@@ -527,9 +527,9 @@ class MicrosandboxWrapper:
             return await self._resource_manager.get_resource_stats()
         except Exception as e:
             logger.error(f"Failed to get resource stats: {e}", exc_info=True)
-            if isinstance(e, MicrosandboxWrapperError):
+            if isinstance(e, LocalSandboxWrapperError):
                 raise
-            raise MicrosandboxWrapperError(f"Failed to get resource stats: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to get resource stats: {str(e)}")
     
     async def cleanup_orphan_sandboxes(self) -> int:
         """
@@ -547,9 +547,9 @@ class MicrosandboxWrapper:
             return await self._resource_manager.force_orphan_cleanup()
         except Exception as e:
             logger.error(f"Failed to cleanup orphan sandboxes: {e}", exc_info=True)
-            if isinstance(e, MicrosandboxWrapperError):
+            if isinstance(e, LocalSandboxWrapperError):
                 raise
-            raise MicrosandboxWrapperError(f"Failed to cleanup orphan sandboxes: {str(e)}")
+            raise LocalSandboxWrapperError(f"Failed to cleanup orphan sandboxes: {str(e)}")
     
     def _ensure_started(self) -> None:
         """
@@ -559,7 +559,7 @@ class MicrosandboxWrapper:
             MicrosandboxWrapperError: If wrapper has not been started
         """
         if not self._started:
-            raise MicrosandboxWrapperError(
+            raise LocalSandboxWrapperError(
                 "Wrapper has not been started. Call start() before using wrapper methods."
             )
     

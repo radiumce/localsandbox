@@ -1,8 +1,9 @@
 """
-Microsandbox Wrapper - High-level Python interface for MCP Server
+LocalSandbox Wrapper - High-level Python interface for MCP Server
 
 This package provides a simplified, high-level interface for interacting with
-microsandbox instances, designed specifically for Python MCP Server implementations.
+This package provides a simplified, high-level interface for interacting with
+LocalSandbox instances, designed specifically for Python MCP Server implementations.
 """
 
 # Import core modules
@@ -16,7 +17,7 @@ from .models import (
     VolumeMapping
 )
 from .exceptions import (
-    MicrosandboxWrapperError,
+    LocalSandboxWrapperError,
     SandboxCreationError,
     CodeExecutionError,
     CommandExecutionError,
@@ -28,7 +29,7 @@ from .exceptions import (
 from .config import WrapperConfig
 from .session_manager import SessionManager, ManagedSession
 from .resource_manager import ResourceManager
-from .wrapper import MicrosandboxWrapper
+from .wrapper import LocalSandboxWrapper
 from .logging_config import (
     setup_logging,
     get_logger,
@@ -41,7 +42,7 @@ from .logging_config import (
 
 __version__ = "0.1.0"
 __all__ = [
-    "MicrosandboxWrapper",
+    "LocalSandboxWrapper",
     "SandboxFlavor",
     "ExecutionResult", 
     "CommandResult",
@@ -53,7 +54,7 @@ __all__ = [
     "SessionManager",
     "ManagedSession",
     "ResourceManager",
-    "MicrosandboxWrapperError",
+    "LocalSandboxWrapperError",
     "SandboxCreationError",
     "CodeExecutionError",
     "CommandExecutionError", 

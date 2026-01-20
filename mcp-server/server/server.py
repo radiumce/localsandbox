@@ -13,7 +13,7 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP, Context
 from pydantic import Field, ConfigDict
 
-from wrapper.wrapper import MicrosandboxWrapper
+from wrapper.wrapper import LocalSandboxWrapper
 
 # Patch FastMCP's ArgModelBase to forbid extra fields
 from mcp.server.fastmcp.utilities.func_metadata import ArgModelBase
@@ -23,7 +23,7 @@ ArgModelBase.model_config = ConfigDict(
 )
 from wrapper.models import SandboxFlavor
 from wrapper.exceptions import (
-    MicrosandboxWrapperError,
+    LocalSandboxWrapperError,
     ResourceLimitError,
     ConfigurationError,
     SandboxCreationError,
@@ -44,24 +44,24 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AppContext:
     """Application context with typed dependencies."""
-    wrapper: MicrosandboxWrapper
+    wrapper: LocalSandboxWrapper
 
 
 # Global wrapper instance
-_global_wrapper: Optional[MicrosandboxWrapper] = None
+_global_wrapper: Optional[LocalSandboxWrapper] = None
 _wrapper_lock = asyncio.Lock()
 
 
-async def get_or_create_wrapper() -> MicrosandboxWrapper:
+async def get_or_create_wrapper() -> LocalSandboxWrapper:
     """Get or create the global wrapper instance."""
     global _global_wrapper
     
     async with _wrapper_lock:
         if _global_wrapper is None:
-            logger.info("Creating and starting MicrosandboxWrapper")
-            _global_wrapper = MicrosandboxWrapper()
+            logger.info("Creating and starting LocalSandboxWrapper")
+            _global_wrapper = LocalSandboxWrapper()
             await _global_wrapper.start()
-            logger.info("MicrosandboxWrapper started successfully")
+            logger.info("LocalSandboxWrapper started successfully")
             
             # Register atexit handler for cleanup on process exit
             import atexit
@@ -76,7 +76,7 @@ def _shutdown_on_exit():
     
     if _global_wrapper is not None and _global_wrapper.is_started():
         try:
-            logger.info("Process exit - shutting down MicrosandboxWrapper")
+            logger.info("Process exit - shutting down LocalSandboxWrapper")
             shutdown_result = _global_wrapper.emergency_shutdown_sync()
             logger.info(f"Shutdown completed: {shutdown_result['status']}")
         except Exception as e:
@@ -84,7 +84,7 @@ def _shutdown_on_exit():
 
 
 # Create MCP server
-mcp = FastMCP("Microsandbox Server")
+mcp = FastMCP("LocalSandbox Server")
 
 
 # Tool implementations using the official SDK
@@ -93,7 +93,7 @@ async def execute_code(
     code: str = Field(description="Code to execute"),
     template: str = Field(default="python", description="Sandbox template. Supported values: 'python' (Python environment), 'node'/'nodejs'/'javascript' (Node.js environment)"),
     session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
-    flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (MSB_DEFAULT_FLAVOR)"),
+    flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (LSB_DEFAULT_FLAVOR)"),
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
     ctx: Context = None,
 ) -> str:
@@ -152,7 +152,7 @@ async def execute_command(
     command: str = Field(description="Complete command line to execute (including arguments, pipes, redirections, etc.)"),
     template: str = Field(default="python", description="Sandbox template. Supported values: 'python' (Python environment), 'node'/'nodejs'/'javascript' (Node.js environment)"),
     session_id: Optional[str] = Field(None, description="Optional session ID for session reuse"),
-    flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (MSB_DEFAULT_FLAVOR)"),
+    flavor: Optional[str] = Field(default=None, description="Resource configuration (small/medium/large/xlarge). If omitted, uses server default from environment (LSB_DEFAULT_FLAVOR)"),
     timeout: Optional[int] = Field(None, description="Execution timeout in seconds"),
     ctx: Context = None,
 ) -> str:

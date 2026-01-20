@@ -6,7 +6,7 @@ fastmcp==2.14.0
 uvicorn>=0.24.0
 starlette>=0.37.0
 
-# HTTP client for microsandbox communication
+# HTTP client for LocalSandbox communication
 aiohttp>=3.8.0
 
 # Note: wrapper is included as a local package in this repository
