@@ -1,56 +1,56 @@
 ---
 name: "sandbox-usage"
-description: "关于如何使用沙箱环境：处理会话生命周期、执行命令行、管理文件映射及处理权限问题。"
+description: "How to use the sandbox environment: managing session lifecycle, executing command lines, managing file mappings, and handling permissions."
 version: "1.0.0"
 ---
 
-# 核心定义
-沙箱是分配的远程服务器环境，用于运行程序和安装软件。你只能通过**命令行工具调用**和**文件读取**来获取反馈，无法通过 GUI 访问。
+# Core Definition
+A sandbox is an allocated remote server environment used for running programs and installing software. You can only get feedback through **command-line tool calls** and **file reading**; GUI access is not available.
 
-# 工具组合
-- sandbox 工具：用于管理沙箱环境，包括会话生命周期、执行命令行、管理文件映射等
-- plan工具：当所需执行的任务较为复杂时应使用Plan工具制定计划以及跟踪任务的执行
+# Tool Combination
+- **sandbox tools**: Used to manage the sandbox environment, including session lifecycle, command line execution, and file mapping management.
+- **plan tools**: When the task to be executed is complex, the Plan tool should be used to formulate a plan and track task execution.
 
-# 第一部分：会话管理 (Session Management)
-为了保证上下文的一致性，必须严格遵守以下会话规则：
+# Part 1: Session Management
+To ensure context consistency, the following session rules must be strictly adhered to:
 
-1.  **会话一致性**
-    - 在完成同一个工作（Work）及相关任务期间，必须锁定使用同一个 `sessionid`。
-    - 禁止频繁无故切换 Session，以保持环境变量和临时文件的连续性。
+1.  **Session Consistency**
+    - During the completion of the same Work and related tasks, one must lock onto using the same `sessionid`.
+    - Frequent switching of Sessions without cause is prohibited to maintain the continuity of environment variables and temporary files.
 
-2.  **超时处理**
-    - 沙箱 Session 可能会超时。
-    - **Action**: 若遇到会话失效或超时错误，应当立即生成新的 `sessionid` 来初始化新的沙箱，并重新配置必要的环境依赖。
+2.  **Timeout Handling**
+    - Sandbox Sessions may time out.
+    - **Action**: If a session invalidation or timeout error is encountered, immediately generate a new `sessionid` to initialize a new sandbox and reconfigure necessary environment dependencies.
 
-# 第二部分：执行规范 (Execution Standards)
+# Part 2: Execution Standards
 
-1.  **权限检查 (Pre-flight Check)**
-    - 在开始复杂任务前，确认当前用户身份（User Identity）。
-    - 部分沙箱默认非 root 用户。若需安装软件或修改系统配置，需判断是否需要添加 `sudo` 前缀。
+1.  **Pre-flight Check**
+    - Before starting complex tasks, confirm the current user identity (User Identity).
+    - Some sandboxes default to non-root users. If you need to install software or modify system configuration, determine if the `sudo` prefix is needed.
 
-2.  **输出控制 (Output Hygiene)**
-    - **成功时**：执行命令时，严格控制 `stdout` 的输出长度。推荐只输出最后 20 行（例如使用 `tail -n 20`），避免消耗过多的 Context Window。
-    - **失败时**：如果命令执行失败，必须获取并分析完整的错误输出（stderr），以便进行调试。
+2.  **Output Hygiene**
+    - **On Success**: When executing commands, strictly control the length of `stdout` output. It is recommended to output only the last 20 lines (e.g., using `tail -n 20`) to avoid consuming excessive Context Window.
+    - **On Failure**: If command execution fails, the full error output (stderr) must be obtained and analyzed for debugging.
 
-3.  **隐式执行**
-    - **Action**: 执行编程任务时，直接调用工具运行代码。
-    - **Constraint**: **不需要**向用户展示你编写的具体程序代码，除非用户明确要求查看源码。
+3.  **Implicit Execution**
+    - **Action**: When performing programming tasks, directly call tools to run code.
+    - **Constraint**: Do **NOT** display the specific program code you wrote to the user unless the user explicitly requests to see the source code.
 
-# 第三部分：文件系统与映射 (File System & Mapping)
+# Part 3: File System & Mapping
 
-沙箱内部文件与宿主机（Host）文件系统是隔离的，必须通过映射关系进行交互，执行任何涉及文件读写的任务前都应当先确认文件系统的映射关系，了解当前或目标工作目录与沙箱内对应目录的映射关系：
+Sandbox internal files are isolated from the Host file system and must interact through mapping relationships. Before executing any task involving file reading or writing, you should first confirm the file system mapping relationship and understand the mapping between the current or target working directory and the corresponding directory in the sandbox:
 
-1.  **获取映射关系**
-    - 调用 `get_volume_mappings` 工具获取“沙箱路径”与“宿主机路径”的对应关系。
-    - **示例**：
+1.  **Get Mapping Relationships**
+    - Call the `get_volume_mappings` tool to get the correspondence between "Sandbox Path" and "Host Path".
+    - **Example**:
       `Host: /Users/Me/project -> Container: /shared`
 
-2.  **文件交互流程**
-    - 若需读取沙箱中生成的文件（如生成的图片、编译的二进制文件）：
-      1. 将文件生成在沙箱的映射目录中（如 `/shared/output.png`）。
-      2. 根据映射关系推导出宿主机路径（如 `/Users/Me/project/output.png`）。
-      3. 使用宿主机的 `filesystem` 工具读取该文件。
+2.  **File Interaction Flow**
+    - If you need to read a file generated in the sandbox (such as a generated image or compiled binary):
+      1. Generate the file in the sandbox's mapped directory (e.g., `/shared/output.png`).
+      2. Deduce the host path based on the mapping relationship (e.g., `/Users/Me/project/output.png`).
+      3. Use the host's `filesystem` tool to read the file.
 
-# 故障排查
-- **输入质检**：若程序运行报错，优先检查输入参数和环境依赖。
-- **输出修正**：若执行结果不如预期，思考是否需要调整命令行参数或开源库的使用方式，并在沙箱中进行验证。
+# Troubleshooting
+- **Input Quality Check**: If the program reports an error, prioritize checking input parameters and environment dependencies.
+- **Output Correction**: If the execution result is not as expected, consider whether to adjust command line parameters or the usage of open source libraries, and verify in the sandbox.
