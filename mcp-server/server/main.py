@@ -83,12 +83,52 @@ def run_server(server_app, config):
             allow_headers=["*"],
         )
     
-    uvicorn.run(
+    # Create uvicorn configuration with signal handlers disabled
+    uvicorn_config = uvicorn.Config(
         app,
         host=config["host"],
         port=config["port"],
         log_level="info",
         access_log=True,
         server_header=False,
+        # We handle signals ourselves to allow for force exit
     )
+    
+    server = uvicorn.Server(uvicorn_config)
+
+    # Set up custom signal handling
+    import signal
+    import os
+    
+    original_handlers = {}
+    force_exit_counter = 0
+
+    def handle_exit(sig, frame):
+        nonlocal force_exit_counter
+        force_exit_counter += 1
+        
+        if force_exit_counter == 1:
+            logger.info(f"Received signal {sig}, initiating graceful shutdown... (Press Ctrl+C again to force exit)")
+            server.should_exit = True
+        else:
+            logger.warning(f"Received signal {sig} again, forcing exit...")
+            os._exit(1)
+
+    # Install handlers
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        original_handlers[sig] = signal.getsignal(sig)
+        signal.signal(sig, handle_exit)
+
+    # Run server
+    try:
+        # We need to run the server in the current thread
+        # uvicorn.Server.run() installs its own handlers unless we override `install_signal_handlers()` 
+        # BUT uvicorn.Server.run() calls `install_signal_handlers()` internally if `config.install_signal_handlers` is True (default).
+        # So we should disable it in config.
+        uvicorn_config.install_signal_handlers = False
+        server.run()
+    finally:
+        # Restore original handlers
+        for sig, handler in original_handlers.items():
+            signal.signal(sig, handler)
 

@@ -1,15 +1,19 @@
 # LocalSandbox MCP Server
 
-A Model Context Protocol (MCP) server that provides secure code execution capabilities through sandboxed environments.
+A Model Context Protocol (MCP) wrapped sandbox implementation that provides secure code execution capabilities through sandboxed environments.
+
+It's designed as a lightweight, local, single-machine sandbox environment tailored for AI Agents.
+
+*   **Primary Use Case**: Task execution for agents and lightweight code execution (Python/Node.js).
+*   **Not Intended For**: Full-scale, project-level software development.
+
 
 ## Features
 
-- **MCP Protocol Support**: Full implementation of the Model Context Protocol for seamless integration with AI assistants
+- **MCP Protocol Support**: Full implementation of the Model Context Protocol for seamless integration with AI Agents.
 - **Transport Options**: Support for HTTP streaming transport
 - **Secure Sandboxing**: Execute code in isolated Docker containers for maximum security
-- **Language Support**: Support for multiple programming languages including Python, JavaScript, and more
-- **Resource Management**: Intelligent resource allocation and cleanup
-- **Background Task Management**: Handle long-running tasks with proper lifecycle management
+- **Language Support**: Support Python, JavaScript scripts interpretation.
 
 ## Installation
 
