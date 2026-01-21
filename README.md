@@ -41,17 +41,16 @@ pip install .
 ### Start with LocalSandbox (recommended)
 
 cd <repository-name>
-cp .env.example .env.docker
+cp .env.example .env.local
 
 ```bash
 lsb start
 ```
 
 This will:
-- Load configuration from `.env.docker` file
+- Load configuration from `.env.local` file
 - Check Docker availability
 - Pull required Docker images
-- Setup shared directories
 - Start the server with HTTP transport
 
 
@@ -85,7 +84,7 @@ The server can be configured through command-line arguments or environment varia
 
 ### LocalSandbox Configuration File
 
-The `lsb start` command uses a `.env.docker` file for configuration. Example:
+The `lsb start` command uses a `.env.local` file for configuration. Example:
 
 ```bash
 # MCP Server Configuration
