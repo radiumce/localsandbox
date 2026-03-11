@@ -68,3 +68,5 @@ python/.python-version
 /logs
 /.lsb
 /tmp
+*.log
+server_pid.txt

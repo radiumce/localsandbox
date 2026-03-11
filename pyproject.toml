@@ -47,6 +47,7 @@ dev = [
     "pytest-mock>=3.10.0",
     "build",
     "twine",
+    "pyinstaller>=5.0.0",
 ]
 test = [
     "pytest>=7.0.0",
@@ -62,6 +63,7 @@ Documentation = "https://github.com/localsandbox/localsandbox/tree/main/docs"
 
 [project.scripts]
 lsb = "server.cli:main"
+lsb-cli = "server.cli_client:main"
 
 [tool.setuptools]
 zip-safe = false
@@ -128,3 +130,8 @@ python_functions = ["test_*"]
 log_cli = true
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s - %(levelname)s - %(message)s"
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.19.0",
+]

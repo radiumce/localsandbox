@@ -47,6 +47,7 @@ def run_server(server_app, config):
     import contextlib
     import uvicorn
     from starlette.applications import Starlette
+    from server.api import api_routes
     from starlette.routing import Mount
     from starlette.middleware.cors import CORSMiddleware
     
@@ -70,7 +71,7 @@ def run_server(server_app, config):
         logger.info("Server lifespan ending")
     
     app = Starlette(
-        routes=[Mount("/", server_app.streamable_http_app())],
+        routes=api_routes + [Mount("/", server_app.streamable_http_app())],
         lifespan=app_lifespan,
     )
     
