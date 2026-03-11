@@ -87,7 +87,7 @@ async def create_persistence_file(session, session_id):
     await execute_tool(session, 'execute_code', {'code': code, 'session_id': session_id})
     log_success(3, "File Creation and Persistence")
 
-async def pin_sandbox_session(session, session_id):
+async def pin_persistent_sandbox(session, session_id):
     """Step 4: Pin the current sandbox."""
     log_step_start(4, "Sandbox Pinning")
     result = await execute_tool(session, 'pin_sandbox', {'pinned_name': PIN_NAME, 'session_id': session_id})
@@ -159,7 +159,7 @@ async def test_e2e_workflow():
                 await create_persistence_file(session, session_id)
 
                 # 4. Pin Sandbox
-                await pin_sandbox_session(session, session_id)
+                await pin_persistent_sandbox(session, session_id)
 
                 # 5. Verify Pinned File (in original session)
                 await verify_file_content(session, session_id, step_num=5)

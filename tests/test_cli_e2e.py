@@ -111,7 +111,7 @@ async def test_cli_e2e_workflow():
         log_step_start(4, "Sandbox Pinning")
         res = await run_cli_cmd(["pin", session_id, PIN_NAME])
         assert res.returncode == 0
-        assert "Successfully pinned session" in res.stdout
+        assert "Successfully pinned sandbox" in res.stdout
         log_success(4, "Sandbox Pinning")
 
         # 5. Verify Pinned File (in original session)

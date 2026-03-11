@@ -994,7 +994,7 @@ class SessionManager:
                 # Clear pending name
                 session.pending_sandbox_name = None
             
-            success_message = f"Successfully pinned session {session_id} as '{pinned_name}'. Container {pinned_name} has been preserved and will not be cleaned up during session timeout."
+            success_message = f"Successfully pinned sandbox {session_id} as '{pinned_name}'. Container {pinned_name} has been preserved and will not be cleaned up during session timeout."
             logger.info(success_message)
             
             return success_message

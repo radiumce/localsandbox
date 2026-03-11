@@ -181,8 +181,8 @@ def main():
     # pin command
     parser_pin = subparsers.add_parser(
         "pin", 
-        help="Pin a sandbox session with a custom name",
-        description="Pin an existing sandbox session with a custom human-readable name for persistence.\n\n"
+        help="Pin a sandbox with a custom name",
+        description="Pin an existing sandbox with a custom human-readable name for persistence.\n\n"
                     "Examples:\n"
                     "  lsb-cli pin <session_id> my-project-env",
         formatter_class=argparse.RawDescriptionHelpFormatter
