@@ -62,6 +62,12 @@ Allows you to save a sandbox from garbage collection by giving it a human-readab
 - **List Volume Mappings**: `lsb-cli volumes`
 - **Force Stop Session**: `lsb-cli stop <session_id>`
 
+## 5. Server Configuration & Diagnostics
+You can verify the current server address and check the backend connection status by running `lsb-cli` without any arguments.
+- **Check Status**: `lsb-cli`
+- **Set Server Address**: You can set or override the target server by appending the `--server` flag to any command (e.g., `lsb-cli --server http://127.0.0.1:8776 sessions`). This will automatically be saved to your CLI configuration for future use.
+- **Action**: If `lsb-cli` fails to connect or reports the server as unhealthy, you **MUST** pause execution and ask the user what the correct Sandbox Server Address is before proceeding with any other commands.
+
 # Part 4: File System & Mapping
 
 Sandbox internal files are isolated from the Host file system. You must use mapped volumes to interact.
