@@ -24,7 +24,7 @@ else
     exit 1
 fi
 
-DOWNLOAD_URL="https://github.com/localsandbox/localsandbox/releases/latest/download/${CLI_NAME}-${OS}-${ARCH_MAP}"
+DOWNLOAD_URL="https://github.com/radiumce/localsandbox/releases/latest/download/${CLI_NAME}-${OS}-${ARCH_MAP}"
 
 echo "ℹ️  Creating directory ${INSTALL_DIR}..."
 mkdir -p "$INSTALL_DIR"
