@@ -31,4 +31,11 @@ Execute the E2E tests using `pytest` in your main terminal window:
 uv run pytest tests/test_e2e.py
 ```
 
+or
+
+```bash
+# In Terminal 2
+uv run pytest tests/test_cli_e2e.py
+```
+
 The tests will automatically connect to the running server, perform a sequence of validation steps (including sandbox creation, file persistence, and session management), and report the results.

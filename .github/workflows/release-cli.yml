@@ -1,0 +1,52 @@
+name: Release CLI
+
+# 当在 GitHub 上新建或发布一个 Release 时触发
+on:
+  release:
+    types: [published]
+
+# 授予上传 Release 资产的权限
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Upload Go Binaries
+    runs-on: ubuntu-latest
+    
+    # 借助矩阵并行交叉编译不同系统的版本
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Build Binary
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd cli
+          # CGO_ENABLED=0 确保生成纯静态链接的可执行文件，最大化跨平台兼容性
+          # -ldflags="-w -s" 减小编译后的二进制体积
+          CGO_ENABLED=0 go build -ldflags="-w -s" -o ../lsb-cli-${{ matrix.os }}-${{ matrix.arch }}
+
+      - name: Upload Files to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: lsb-cli-${{ matrix.os }}-${{ matrix.arch }}

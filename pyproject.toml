@@ -63,7 +63,6 @@ Documentation = "https://github.com/localsandbox/localsandbox/tree/main/docs"
 
 [project.scripts]
 lsb = "server.cli:main"
-lsb-cli = "server.cli_client:main"
 
 [tool.setuptools]
 zip-safe = false

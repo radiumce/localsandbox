@@ -70,3 +70,6 @@ python/.python-version
 /tmp
 *.log
 server_pid.txt
+
+
+cli/lsb-cli

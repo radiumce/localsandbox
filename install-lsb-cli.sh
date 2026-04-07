@@ -24,26 +24,25 @@ else
     exit 1
 fi
 
-# Ideally, you'd host the binary somewhere like GitHub Releases.
-# This serves as a template for where the download URL would go.
-# As this is local dev, we will point out that they need to compile it or fetch from CI.
 DOWNLOAD_URL="https://github.com/localsandbox/localsandbox/releases/latest/download/${CLI_NAME}-${OS}-${ARCH_MAP}"
 
 echo "ℹ️  Creating directory ${INSTALL_DIR}..."
 mkdir -p "$INSTALL_DIR"
 
-# Wait, since the artifact hasn't been hosted yet, we can't reliably download it.
-# We will just print the theoretical curl command but for the sake of completeness implement local copy fallback if exists.
-if [ -f "dist/${CLI_NAME}" ]; then
+if command -v go >/dev/null 2>&1 && [ -d "cli" ] && [ -f "cli/main.go" ]; then
+    echo "📦 Go compiler found. Compiling lsb-cli locally..."
+    (cd cli && go build -o "${INSTALL_DIR}/${CLI_NAME}")
+elif [ -f "dist/${CLI_NAME}" ]; then
     echo "📦 Local build found. Copying from dist/${CLI_NAME}..."
     cp "dist/${CLI_NAME}" "${INSTALL_DIR}/${CLI_NAME}"
 else
     echo "⬇️  Downloading from ${DOWNLOAD_URL}..."
-    # curl -fsSL -o "${INSTALL_DIR}/${CLI_NAME}" "$DOWNLOAD_URL"
-    # Fallback explanation
-    echo "ℹ️  (Download placeholder: you should run 'make build-cli' locally until releases are published)"
-    # Instead of failing, we will simulate the success for this assignment
-    touch "${INSTALL_DIR}/${CLI_NAME}"
+    if ! curl -fsSL -o "${INSTALL_DIR}/${CLI_NAME}" "$DOWNLOAD_URL"; then
+        echo "❌ Download failed. The latest release might not exist."
+        echo "Please build from source using 'make build-cli', or verify the GitHub release."
+        rm -f "${INSTALL_DIR}/${CLI_NAME}"
+        exit 1
+    fi
 fi
 
 chmod +x "${INSTALL_DIR}/${CLI_NAME}"

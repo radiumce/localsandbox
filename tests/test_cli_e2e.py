@@ -48,8 +48,10 @@ def log_info(message):
 
 async def run_cli_cmd(command_args):
     """Run an lsb-cli command and return stdout/stderr via asyncio subprocess."""
+    import shutil
     import sys
-    cmd = [sys.executable, "-m", "server.cli_client", "--server", SERVER_URL] + command_args
+    lsb_cli_path = shutil.which("lsb-cli") or os.path.expanduser("~/.local/bin/lsb-cli")
+    cmd = [lsb_cli_path, "-server", SERVER_URL] + command_args
     import asyncio
     process = await asyncio.create_subprocess_exec(
         *cmd,
@@ -206,9 +208,7 @@ async def test_cli_parameter_validation():
         log_info("Testing with incorrect fields (invalid flag)...")
         res = await run_cli_cmd(["exec-code", "-c", "print('hi')", "--invalid-flag"])
         
-        # We expect this to fail argument parsing returning non-zero exit code
         assert res.returncode != 0
-        assert "unrecognized arguments: --invalid-flag" in res.stderr
-        log_success("Validation", "Correctly rejected '--invalid-flag'")
+        assert "invalid-flag" in res.stderr or "flag provided but not defined" in res.stderr or "invalid-flag" in res.stdout or "flag provided but not defined" in res.stdout
     except Exception as e:
         pytest.fail(f"Unexpected error: {e}")

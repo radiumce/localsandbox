@@ -1,8 +1,7 @@
 .PHONY: build-cli install-cli run-server
 
 build-cli:
-	uv add --dev pyinstaller
-	uv run pyinstaller --onefile --name lsb-cli mcp-server/server/cli_client.py
+	cd cli && go build -o ../dist/lsb-cli
 	@echo "Build successful! Binary is in dist/lsb-cli"
 
 install-cli:
